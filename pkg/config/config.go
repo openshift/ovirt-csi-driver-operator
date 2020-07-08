@@ -26,7 +26,4 @@ type Config struct {
 	// provisioner to run leader election. It will be bound to the ServiceAccount using RoleBind, i.e. leader election
 	// will be possible only in the namespace where the drivers run.
 	LeaderElectionClusterRoleName string `yaml:"leaderElectionClusterRoleName,omitempty"`
-
-	// Path to /var/lib/kubelet.
-	KubeletRootDir string `yaml:"kubeletRootDir,omitempty"`
 }

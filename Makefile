@@ -1,42 +1,74 @@
-# Image URL to use all building/pushing image targets
-IMG ?= quay.io/ovirt/csi-driver-operator:latest
-
-BINDIR=bin
-#BINDATA=$(BINDIR)/go-bindata
-BINDATA=go-bindata
-
-REV=$(shell git describe --long --tags --match='v*' --always --dirty)
+SHELL :=/bin/bash
 
 all: build
+.PHONY: all
 
-# Run tests
-.PHONY: test
-test:
-	go test ./pkg/... ./cmd/... -coverprofile cover.out
+TARGET_NAME=csi-driver-operator
+IMAGE_REF=quay.io/ovirt/$(TARGET_NAME):latest
+GO_TEST_PACKAGES :=./pkg/... ./cmd/...
+IMAGE_REGISTRY?=registry.svc.ci.openshift.org
 
-# Build the binary
-.PHONY: build
-build:
-	go build -o $(BINDIR)/ovirt-csi-driver-operator -ldflags '-X version.Version=$(REV) -extldflags "-static"' github.com/ovirt/csi-driver-operator/cmd/ovirt-csi-driver-operator
+# You can customize go tools depending on the directory layout.
+# example:
+#GO_BUILD_PACKAGES :=./pkg/...
+# You can list all the golang related variables by:
+#   $ make -n --print-data-base | grep ^GO
+
+# Include the library makefile
+include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
+        golang.mk \
+        targets/openshift/deps-gomod.mk \
+        targets/openshift/images.mk \
+        targets/openshift/bindata.mk \
+        targets/openshift/codegen.mk \
+)
+
+define run-codegen
+        "$(SHELL)" \
+        "$(CODEGEN_PKG)/generate-groups.sh" \
+        "$(CODEGEN_GENERATORS)" \
+        "$(CODEGEN_OUTPUT_PACKAGE)" \
+        "$(CODEGEN_API_PACKAGE)" \
+        "$(CODEGEN_GROUPS_VERSION)" \
+    --output-base $(CODEGEN_OUTPUT_BASE) \
+    --go-header-file $(CODEGEN_GO_HEADER_FILE) \
+    $1
+endef
+
+# All the available targets are listed in <this-file>.help
+# or you can list it live by using `make help`
 
 
-.PHONY: verify
-verify: fmt vet
+# Codegen module needs setting these required variables
+CODEGEN_OUTPUT_PACKAGE :=github.com/ovirt/csi-driver-operator/pkg/generated
+CODEGEN_API_PACKAGE :=github.com/ovirt/csi-driver-operator/pkg/apis
+CODEGEN_GROUPS_VERSION :=operator:v1alpha1
+# You can list all codegen related variables by:
+#   $ make -n --print-data-base | grep ^CODEGEN
 
-fmt:
-	go fmt ./...
-vet:
-	go vet ./...
+# This will call a macro called "build-image" which will generate image specific targets based on the parameters:
+# $1 - target name
+# $2 - image ref
+# $3 - Dockerfile path
+# $4 - context
+# It will generate target "image-$(1)" for builing the image an binding it as a prerequisite to target "images".
+$(call build-image,$(TARGET_NAME),$(IMAGE_REF),./Dockerfile,.)
 
-.PHONY: image
-image:
-	podman build . -f Dockerfile -t ${IMG}
+# This will call a macro called "add-bindata" which will generate bindata specific targets based on the parameters:
+# $0 - macro name
+# $1 - target suffix
+# $2 - input dirs
+# $3 - prefix
+# $4 - pkg
+# $5 - output
+# It will generate targets {update,verify}-bindata-$(1) logically grouping them in unsuffixed versions of these targets
+# and also hooked into {update,verify}-generated for broader integration.
+$(call add-bindata,generated,./pkg/...,generated,pkg/generated/bindata.go)
+
+# make target aliases
+fmt: verify-gofmt
+		
+vet: verify-govet
 
 .PHONY: vendor
-vendor:
-	go mod tidy
-	go mod vendor
-	go mod verify
-
-$(BINDATA):
-	go build -o $(BINDATA) ./vendor/github.com/jteeuwen/go-bindata
+vendor: verify-deps

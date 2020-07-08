@@ -196,7 +196,7 @@ func (r *ReconcileOvirtCSIOperator) syncCSIDriverDeployment(cr *v1alpha1.OvirtCS
 		}
 	}
 	if len(filteredErrors) == 0 {
-		cr.Status.ObservedGeneration = &cr.Generation
+		cr.Status.ObservedGeneration = cr.Generation
 	}
 	r.syncConditions(cr, statefulSet, ds, filteredErrors)
 
