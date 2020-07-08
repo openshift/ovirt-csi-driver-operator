@@ -1,9 +1,7 @@
-package controller
+package operator
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/ovirt/csi-driver-operator/pkg/controller/ovirtcsioperator"
 )
 
 // AddToManagerFuncs is a list of functions to add all Controllers to the Manager
@@ -21,5 +19,5 @@ func AddToManager(m manager.Manager) error {
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, ovirtcsioperator.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, Add)
 }

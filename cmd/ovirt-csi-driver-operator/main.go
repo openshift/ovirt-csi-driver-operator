@@ -9,7 +9,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	"github.com/ovirt/csi-driver-operator/pkg/apis"
-	"github.com/ovirt/csi-driver-operator/pkg/controller"
+	"github.com/ovirt/csi-driver-operator/pkg/operator"
 	"github.com/ovirt/csi-driver-operator/pkg/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -92,7 +92,7 @@ func main() {
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
+	if err := operator.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

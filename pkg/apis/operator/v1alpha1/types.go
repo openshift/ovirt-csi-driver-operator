@@ -15,7 +15,6 @@ type OvirtCSIOperatorSpec struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 	// managementState indicates whether and how the operator should manage the component
 	ManagementState openshiftapi.ManagementState `json:"managementState"`
-
 }
 
 // OvirtCSIOperatorStatus defines the observed state of OvirtCSIOperator
