@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"os"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,6 +23,16 @@ import (
 	"github.com/ovirt/csi-driver-operator/pkg/config"
 )
 
+const (
+	driverImageEnvName              = "RELATED_IMAGE_DRIVER"
+	provisionerImageEnvName         = "RELATED_IMAGE_PROVISIONER"
+	attacherImageEnvName            = "RELATED_IMAGE_ATTACHER"
+	resizerImageEnvName             = "RELATED_IMAGE_RESIZER"
+	snapshotterImageEnvName         = "RELATED_IMAGE_SNAPSHOTTER"
+	nodeDriverRegistrarImageEnvName = "RELATED_IMAGE_NODE_DRIVER_REGISTRAR"
+	livenessProbeImageEnvName       = "RELATED_IMAGE_LIVENESS_PROBE"
+)
+
 var log = logf.Log.WithName("controller_ovirtcsioperator")
 
 // Add creates a new OvirtCSIOperator Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -36,6 +47,17 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
 		recorder: mgr.GetEventRecorderFor("ovirt-csi-driver-operator"),
+		config: config.Config{
+			Images: config.CSIDeploymentContainerImages{
+				CSIDriver:            os.Getenv(driverImageEnvName),
+				AttacherImage:        os.Getenv(attacherImageEnvName),
+				ProvisionerImage:     os.Getenv(provisionerImageEnvName),
+				DriverRegistrarImage: os.Getenv(nodeDriverRegistrarImageEnvName),
+				LivenessProbeImage:   os.Getenv(livenessProbeImageEnvName),
+				ResizerImage:         os.Getenv(resizerImageEnvName),
+				SnapshoterImage:      os.Getenv(snapshotterImageEnvName),
+			},
+		},
 	}
 }
 
@@ -113,7 +135,7 @@ type ReconcileOvirtCSIOperator struct {
 	client   client.Client
 	scheme   *runtime.Scheme
 	recorder record.EventRecorder
-	config   *config.Config
+	config   config.Config
 }
 
 // Reconcile reads that state of the cluster for a OvirtCSIOperator object and makes changes based on the state read

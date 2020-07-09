@@ -408,7 +408,7 @@ echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE`,
 	// Add CSI Registrar sidecar
 	registrar := v1.Container{
 		Name:            "csi-driver-registrar",
-		Image:           "quay.io/k8scsi/csi-node-driver-registrar:v1.2.0",
+		Image:           r.config.Images.DriverRegistrarImage,
 		ImagePullPolicy: v1.PullAlways,
 		Args: []string{
 			"--v=5",
@@ -440,7 +440,7 @@ echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE`,
 	mountPropogationType := v1.MountPropagationBidirectional
 	csiDriver := v1.Container{
 		Name:            "ovirt-csi-driver",
-		Image:           "quay.io/ovirt/csi-driver:latest",
+		Image:           r.config.Images.CSIDriver,
 		ImagePullPolicy: v1.PullAlways,
 		SecurityContext: &v1.SecurityContext{
 			Privileged:               boolPtr(true),
@@ -702,7 +702,7 @@ echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
 
 	containers = append(containers, v1.Container{
 		Name:  "csi-external-provisioner",
-		Image: "quay.io/k8scsi/csi-provisioner:v1.5.0",
+		Image: r.config.Images.ProvisionerImage,
 		Args: []string{
 			"--v=5",
 			"--csi-address=" + sidecarSocketPath,
@@ -719,7 +719,7 @@ echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
 
 	containers = append(containers, v1.Container{
 		Name:  "csi-external-attacher",
-		Image: "quay.io/k8scsi/csi-attacher:v2.0.0",
+		Image: r.config.Images.AttacherImage,
 		Args: []string{
 			"--v=5",
 			"--csi-address=/csi/csi.sock",
@@ -734,7 +734,7 @@ echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
 
 	containers = append(containers, v1.Container{
 		Name:  "ovirt-csi-driver",
-		Image: "quay.io/ovirt/csi-driver:latest",
+		Image: r.config.Images.CSIDriver,
 		Args: []string{
 			"--v=5",
 			"--namespace=" + namespace,
@@ -791,7 +791,7 @@ echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
 	// liveness probe
 	containers = append(containers, v1.Container{
 		Name:  "liveness-probe",
-		Image: "quay.io/k8scsi/livenessprobe:v2.0.0",
+		Image: r.config.Images.LivenessProbeImage,
 		Args: []string{
 			"-v=5",
 			fmt.Sprintf("-csi-address=%s", sidecarSocketPath),
