@@ -54,22 +54,3 @@ type OvirtCSIOperatorList struct {
 func init() {
 	SchemeBuilder.Register(&OvirtCSIOperator{}, &OvirtCSIOperatorList{})
 }
-
-// CSIDeploymentContainerImages specifies custom sidecar container image names. This should be used only to override the default operator image names.
-type CSIDeploymentContainerImages struct {
-	// Name of CSI Attacher sidecar container image.
-	// Optional.
-	AttacherImage *string `json:"attacherImage,omitempty" yaml:"attacherImage"` // Use yaml tags for reading config from a file.
-
-	// Name of CSI Provisioner sidecar container image.
-	// Optional.
-	ProvisionerImage *string `json:"provisionerImage,omitempty" yaml:"provisionerImage"`
-
-	// Name of CSI Driver Registrar sidecar container image.
-	// Optional.
-	DriverRegistrarImage *string `json:"driverRegistrarImage,omitempty" yaml:"driverRegistrarImage"`
-
-	// Name of CSI Liveness Probe sidecar container image.
-	// Optional.
-	LivenessProbeImage *string `json:"livenessProbeImage,omitempty" yaml:"livenessProbeImage"`
-}
