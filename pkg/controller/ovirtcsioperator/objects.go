@@ -351,10 +351,14 @@ func (r *ReconcileOvirtCSIOperator) generateDaemonSet(cr *v1alpha1.OvirtCSIOpera
 					},
 				},
 				{
-					Name: "OVIRT_CAFILE",
+					Name:  "OVIRT_CAFILE",
+					Value: "/tmp/config/ovirt-engine-ca.pem",
+				},
+				{
+					Name: "OVIRT_INSECURE",
 					ValueFrom: &v1.EnvVarSource{
 						SecretKeyRef: &v1.SecretKeySelector{
-							Key: "ovirt_cafile",
+							Key: "ovirt_insecure",
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "ovirt-credentials",
 							},
@@ -362,10 +366,10 @@ func (r *ReconcileOvirtCSIOperator) generateDaemonSet(cr *v1alpha1.OvirtCSIOpera
 					},
 				},
 				{
-					Name: "OVIRT_INSECURE",
+					Name: "OVIRT_CA_BUNDLE",
 					ValueFrom: &v1.EnvVarSource{
 						SecretKeyRef: &v1.SecretKeySelector{
-							Key: "ovirt_insecure",
+							Key: "ovirt_ca_bundle",
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "ovirt-credentials",
 							},
@@ -384,7 +388,8 @@ ovirt_username: $OVIRT_USERNAME
 ovirt_password: $OVIRT_PASSWORD
 ovirt_cafile: $OVIRT_CAFILE
 ovirt_insecure: $OVIRT_INSECURE
-EOF`,
+EOF
+echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE`,
 			},
 			VolumeMounts: []v1.VolumeMount{
 				{
@@ -638,10 +643,14 @@ func (r *ReconcileOvirtCSIOperator) generateStatefulSet(cr *v1alpha1.OvirtCSIOpe
 					},
 				},
 				{
-					Name: "OVIRT_CAFILE",
+					Name:  "OVIRT_CAFILE",
+					Value: "/tmp/config/ovirt-engine-ca.pem",
+				},
+				{
+					Name: "OVIRT_INSECURE",
 					ValueFrom: &v1.EnvVarSource{
 						SecretKeyRef: &v1.SecretKeySelector{
-							Key: "ovirt_cafile",
+							Key: "ovirt_insecure",
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "ovirt-credentials",
 							},
@@ -649,10 +658,10 @@ func (r *ReconcileOvirtCSIOperator) generateStatefulSet(cr *v1alpha1.OvirtCSIOpe
 					},
 				},
 				{
-					Name: "OVIRT_INSECURE",
+					Name: "OVIRT_CA_BUNDLE",
 					ValueFrom: &v1.EnvVarSource{
 						SecretKeyRef: &v1.SecretKeySelector{
-							Key: "ovirt_insecure",
+							Key: "ovirt_ca_bundle",
 							LocalObjectReference: v1.LocalObjectReference{
 								Name: "ovirt-credentials",
 							},
@@ -671,7 +680,9 @@ ovirt_username: $OVIRT_USERNAME
 ovirt_password: $OVIRT_PASSWORD
 ovirt_cafile: $OVIRT_CAFILE
 ovirt_insecure: $OVIRT_INSECURE
-EOF`,
+EOF
+echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
+`,
 			},
 			VolumeMounts: []v1.VolumeMount{
 				{
