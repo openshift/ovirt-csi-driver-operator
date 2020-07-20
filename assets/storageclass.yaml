@@ -1,10 +1,11 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: gp2-csi
+  name: ovirt-csi-sc
 parameters:
-  type: gp2
-  encrypted: "true"
+  # the name of the oVirt storage domain. "nfs" is just an example.
+  storageDomainName: "nfs"
+  thinProvisioning: "true"
 provisioner: csi.ovirt.org
 reclaimPolicy: "Delete"
 volumeBindingMode: WaitForFirstConsumer

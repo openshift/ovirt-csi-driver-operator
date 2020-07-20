@@ -1,4 +1,5 @@
-// Package v1alpha1 contains API Schema definitions for the operator v1alpha1 API group
-// +k8s:deepcopy-gen=package,register
-// +groupName=ovirt.csidriver.openshift.io
-package v1alpha1
+// +k8s:deepcopy-gen=package
+// +groupName=csi.openshift.io
+
+// Package v1alpha1 is the v1alpha1 version of the API.
+package v1alpha1 // import "github.com/ovirt/csi-driver-operator/pkg/apis/operator/v1alpha1"
