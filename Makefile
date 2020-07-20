@@ -16,21 +16,33 @@ IMAGE_REGISTRY?=registry.svc.ci.openshift.org
 
 # Include the library makefile
 include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
-        golang.mk \
-        targets/openshift/deps-gomod.mk \
-        targets/openshift/images.mk \
-        targets/openshift/bindata.mk \
-        targets/openshift/codegen.mk \
+	golang.mk \
+	targets/openshift/deps-gomod.mk \
+	targets/openshift/images.mk \
+	targets/openshift/bindata.mk \
+	targets/openshift/codegen.mk \
 )
 
+# Codegen module needs setting these required variables
+PACKAGE_BASE := github.com/ovirt/csi-driver-operator
+CODEGEN_OUTPUT_PACKAGE :=$(PACKAGE_BASE)/pkg/generated
+CODEGEN_API_PACKAGE :=$(PACKAGE_BASE)/pkg/apis
+CODEGEN_GROUPS_VERSION :=operator:v1alpha1
+
+ALIAS_GOPATH := /tmp/go/src
+
+alias_this:
+	mkdir -p $(ALIAS_GOPATH)/$$(dirname $(PACKAGE_BASE))
+	ln -s $$(dirname $$(go env GOMOD)) $(ALIAS_GOPATH)/$(PACKAGE_BASE)
+
 define run-codegen
-        "$(SHELL)" \
-        "$(CODEGEN_PKG)/generate-groups.sh" \
-        "$(CODEGEN_GENERATORS)" \
-        "$(CODEGEN_OUTPUT_PACKAGE)" \
-        "$(CODEGEN_API_PACKAGE)" \
-        "$(CODEGEN_GROUPS_VERSION)" \
-    --output-base $(CODEGEN_OUTPUT_BASE) \
+	"$(SHELL)" \
+		"$(CODEGEN_PKG)/generate-groups.sh" \
+	"$(CODEGEN_GENERATORS)" \
+	"$(CODEGEN_OUTPUT_PACKAGE)" \
+	"$(CODEGEN_API_PACKAGE)" \
+	"$(CODEGEN_GROUPS_VERSION)" \
+    --output-base $(ALIAS_GOPATH) \
     --go-header-file $(CODEGEN_GO_HEADER_FILE) \
     $1
 endef
@@ -39,10 +51,6 @@ endef
 # or you can list it live by using `make help`
 
 
-# Codegen module needs setting these required variables
-CODEGEN_OUTPUT_PACKAGE :=github.com/ovirt/csi-driver-operator/pkg/generated
-CODEGEN_API_PACKAGE :=github.com/ovirt/csi-driver-operator/pkg/apis
-CODEGEN_GROUPS_VERSION :=operator:v1alpha1
 # You can list all codegen related variables by:
 #   $ make -n --print-data-base | grep ^CODEGEN
 
@@ -63,7 +71,7 @@ $(call build-image,$(TARGET_NAME),$(IMAGE_REF),./Dockerfile,.)
 # $5 - output
 # It will generate targets {update,verify}-bindata-$(1) logically grouping them in unsuffixed versions of these targets
 # and also hooked into {update,verify}-generated for broader integration.
-$(call add-bindata,generated,./pkg/...,generated,pkg/generated/bindata.go)
+$(call add-bindata,generated,./assets/...,assets,generated,pkg/generated/bindata.go)
 
 # make target aliases
 fmt: verify-gofmt

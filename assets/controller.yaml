@@ -20,6 +20,54 @@ spec:
       tolerations:
         - key: CriticalAddonsOnly
           operator: Exists
+      initContainers:
+        - name: prepare-ovirt-config
+          env:
+            - name: OVIRT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_url
+            - name: OVIRT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_username
+            - name: OVIRT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_password
+            - name: OVIRT_CAFILE
+              value: /tmp/config/ovirt-engine-ca.pem
+            - name: OVIRT_INSECURE
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_insecure
+            - name: OVIRT_CA_BUNDLE
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_ca_bundle
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              cat << EOF > /tmp/config/ovirt-config.yaml
+              ovirt_url: $OVIRT_URL
+              ovirt_username: $OVIRT_USERNAME
+              ovirt_password: $OVIRT_PASSWORD
+              # set a valid path only if ca bundle has content
+              ovirt_cafile: ${OVIRT_CA_BUNDLE:+$OVIRT_CAFILE}
+              ovirt_insecure: $OVIRT_INSECURE
+              EOF
+              [[ -n "$OVIRT_CA_BUNDLE" ]] && echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
+          volumeMounts:
+            - name: config
+              mountPath: /tmp/config
       containers:
         # Warning: the operator expects the first container to be the CSI driver
         - name: csi-driver
@@ -31,16 +79,8 @@ spec:
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ovirt-credentials
-                  key: aws_access_key_id
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ovirt-credentials
-                  key: aws_secret_access_key
+            - name: OVIRT_CONFIG
+              value: /tmp/config/ovirt-config.yaml
           ports:
             - name: healthz
               containerPort: 19808
@@ -48,6 +88,8 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+            - name: config
+              mountPath: /tmp/config
         - name: csi-provisioner
           image: ${PROVISIONER_IMAGE}
           args:
@@ -96,4 +138,6 @@ spec:
             name: socket-dir
       volumes:
         - name: socket-dir
+          emptyDir: {}
+        - name: config
           emptyDir: {}
