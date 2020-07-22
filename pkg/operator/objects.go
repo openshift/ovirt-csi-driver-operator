@@ -391,10 +391,11 @@ cat << EOF > /tmp/config/ovirt-config.yaml
 ovirt_url: $OVIRT_URL
 ovirt_username: $OVIRT_USERNAME
 ovirt_password: $OVIRT_PASSWORD
-ovirt_cafile: $OVIRT_CAFILE
+# set a valid path only if ca bundle has content
+ovirt_cafile: ${OVIRT_CA_BUNDLE:+$OVIRT_CAFILE}
 ovirt_insecure: $OVIRT_INSECURE
 EOF
-echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE`,
+[[ -n "$OVIRT_CA_BUNDLE" ]] && echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE`,
 			},
 			VolumeMounts: []v1.VolumeMount{
 				{
@@ -683,10 +684,11 @@ cat << EOF > /tmp/config/ovirt-config.yaml
 ovirt_url: $OVIRT_URL
 ovirt_username: $OVIRT_USERNAME
 ovirt_password: $OVIRT_PASSWORD
-ovirt_cafile: $OVIRT_CAFILE
+# set a valid path only if ca bundle has content
+ovirt_cafile: ${OVIRT_CA_BUNDLE:+$OVIRT_CAFILE}
 ovirt_insecure: $OVIRT_INSECURE
 EOF
-echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
+[[ -n "$OVIRT_CA_BUNDLE" ]] && echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
 `,
 			},
 			VolumeMounts: []v1.VolumeMount{
