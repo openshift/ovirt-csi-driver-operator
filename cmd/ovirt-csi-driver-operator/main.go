@@ -5,17 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	"github.com/ovirt/csi-driver-operator/pkg/apis"
-	"github.com/ovirt/csi-driver-operator/pkg/controller"
+	"github.com/ovirt/csi-driver-operator/pkg/operator"
 	"github.com/ovirt/csi-driver-operator/pkg/version"
 
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
-	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -30,13 +28,6 @@ var (
 	operatorMetricsPort int32 = 8686
 )
 var log = logf.Log.WithName("cmd")
-
-func printVersion() {
-	log.Info(fmt.Sprintf("Operator Version: %s", version.Version))
-	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
-	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
-	log.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion.Version))
-}
 
 func main() {
 	// Add the zap logger flag set to the CLI. The flag set must
@@ -101,7 +92,7 @@ func main() {
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
+	if err := operator.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
@@ -113,4 +104,8 @@ func main() {
 		log.Error(err, "Manager exited non-zero")
 		os.Exit(1)
 	}
+}
+
+func printVersion() {
+	log.Info(fmt.Sprintf("Operator version - git version: %s, git commit: %s", version.Get().GitVersion, version.Get().GitCommit))
 }

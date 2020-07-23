@@ -6,7 +6,7 @@ RUN make build
 
 FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
 
-COPY --from=builder /src/ovirt-csi-driver-operator/bin/ovirt-csi-driver-operator /usr/local/bin/
+COPY --from=builder /src/ovirt-csi-driver-operator/ovirt-csi-driver-operator /usr/local/bin/
 COPY --from=builder /src/ovirt-csi-driver-operator/manifests /manifests
 
 LABEL io.k8s.display-name="OpenShift ovirt-csi-driver-operator" \
