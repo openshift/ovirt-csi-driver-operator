@@ -1,5 +1,3 @@
-# TODO: create custom SCC with things that the AWS CSI driver needs
-
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -9,3 +7,7 @@ rules:
     resourceNames: ["privileged"]
     resources: ["securitycontextconstraints"]
     verbs: ["use"]
+  # This permission is needed by the driver NodeGetInfo
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]

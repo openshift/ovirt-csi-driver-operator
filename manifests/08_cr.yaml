@@ -1,9 +1,11 @@
 ---
-apiVersion: csi.openshift.io/v1alpha1
-kind: OvirtCSIDriver
+apiVersion: operator.openshift.io/v1
+kind: ClusterCSIDriver
 metadata:
-  name: cluster
+  name: csi.ovirt.org
 spec:
-  logLevel: Trace
+  driverConfig:
+    driverName: csi.ovirt.org
+  logLevel: Debug
   managementState: Managed
-  operatorLogLevel: Trace
+  operatorLogLevel: Debug

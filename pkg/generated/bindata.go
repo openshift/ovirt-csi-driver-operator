@@ -188,28 +188,6 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: csi-resizer
-          image: ${RESIZER_IMAGE}
-          args:
-            - --csi-address=$(ADDRESS)
-            - --v=${LOG_LEVEL}
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: csi-snapshotter
-          image: ${SNAPSHOTTER_IMAGE}
-          args:
-            - --csi-address=$(ADDRESS)
-            - --v=${LOG_LEVEL}
-          env:
-          - name: ADDRESS
-            value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          volumeMounts:
-          - mountPath: /var/lib/csi/sockets/pluginproxy/
-            name: socket-dir
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -408,6 +386,7 @@ spec:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
             - --v=${LOG_LEVEL}
+            - --node-name=$(KUBE_NODE_NAME)
           env:
             - name: CSI_ENDPOINT
               value: unix:/csi/csi.sock
@@ -654,9 +633,7 @@ func rbacNode_privileged_bindingYaml() (*asset, error) {
 	return a, nil
 }
 
-var _rbacPrivileged_roleYaml = []byte(`# TODO: create custom SCC with things that the AWS CSI driver needs
-
-kind: ClusterRole
+var _rbacPrivileged_roleYaml = []byte(`kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: ovirt-privileged-role
@@ -665,6 +642,10 @@ rules:
     resourceNames: ["privileged"]
     resources: ["securitycontextconstraints"]
     verbs: ["use"]
+  # This permission is needed by the driver NodeGetInfo
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
 `)
 
 func rbacPrivileged_roleYamlBytes() ([]byte, error) {

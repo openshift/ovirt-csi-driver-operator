@@ -20,32 +20,7 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	targets/openshift/deps-gomod.mk \
 	targets/openshift/images.mk \
 	targets/openshift/bindata.mk \
-	targets/openshift/codegen.mk \
 )
-
-# Codegen module needs setting these required variables
-PACKAGE_BASE := github.com/ovirt/csi-driver-operator
-CODEGEN_OUTPUT_PACKAGE :=$(PACKAGE_BASE)/pkg/generated
-CODEGEN_API_PACKAGE :=$(PACKAGE_BASE)/pkg/apis
-CODEGEN_GROUPS_VERSION :=operator:v1alpha1
-
-ALIAS_GOPATH := /tmp/go/src
-
-alias_this:
-	mkdir -p $(ALIAS_GOPATH)/$$(dirname $(PACKAGE_BASE))
-	ln -s $$(dirname $$(go env GOMOD)) $(ALIAS_GOPATH)/$(PACKAGE_BASE)
-
-define run-codegen
-	"$(SHELL)" \
-		"$(CODEGEN_PKG)/generate-groups.sh" \
-	"$(CODEGEN_GENERATORS)" \
-	"$(CODEGEN_OUTPUT_PACKAGE)" \
-	"$(CODEGEN_API_PACKAGE)" \
-	"$(CODEGEN_GROUPS_VERSION)" \
-    --output-base $(ALIAS_GOPATH) \
-    --go-header-file $(CODEGEN_GO_HEADER_FILE) \
-    $1
-endef
 
 # All the available targets are listed in <this-file>.help
 # or you can list it live by using `make help`

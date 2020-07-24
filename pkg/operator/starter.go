@@ -9,12 +9,12 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
+	opv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
 	goc "github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"github.com/ovirt/csi-driver-operator/pkg/apis/operator/v1alpha1"
 	"github.com/ovirt/csi-driver-operator/pkg/generated"
 )
 
@@ -23,6 +23,7 @@ const (
 	defaultNamespace = "openshift-cluster-csi-drivers"
 	operatorName     = "ovirt-csi-driver-operator"
 	operandName      = "ovirt-csi-driver"
+	instanceName     = "csi.ovirt.org"
 )
 
 func RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -32,8 +33,8 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
-	gvr := v1alpha1.SchemeGroupVersion.WithResource("ovirtcsidrivers")
-	operatorClient, dynamicInformers, err := goc.NewClusterScopedOperatorClient(controllerConfig.KubeConfig, gvr)
+	gvr := opv1.SchemeGroupVersion.WithResource("clustercsidrivers")
+	operatorClient, dynamicInformers, err := goc.NewClusterScopedOperatorClientWithConfigName(controllerConfig.KubeConfig, gvr, instanceName)
 	if err != nil {
 		return err
 	}
@@ -76,6 +77,7 @@ func RunOperator(ctx context.Context, controllerConfig *controllercmd.Controller
 		).
 		WithCSIDriverController(
 			"OvirtDriverController",
+			instanceName,
 			operandName,
 			defaultNamespace,
 			generated.MustAsset,
