@@ -1,0 +1,164 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: ovirt-csi-driver-node
+  namespace: openshift-cluster-csi-drivers
+spec:
+  selector:
+    matchLabels:
+      app: ovirt-csi-driver-node
+  template:
+    metadata:
+      labels:
+        app: ovirt-csi-driver-node
+    spec:
+      hostNetwork: true
+      serviceAccount: ovirt-csi-driver-node-sa
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+      initContainers:
+        - name: prepare-ovirt-config
+          env:
+            - name: OVIRT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_url
+            - name: OVIRT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_username
+            - name: OVIRT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_password
+            - name: OVIRT_CAFILE
+              value: /tmp/config/ovirt-engine-ca.pem
+            - name: OVIRT_INSECURE
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_insecure
+            - name: OVIRT_CA_BUNDLE
+              valueFrom:
+                secretKeyRef:
+                  name: ovirt-credentials
+                  key: ovirt_ca_bundle
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              cat << EOF > /tmp/config/ovirt-config.yaml
+              ovirt_url: $OVIRT_URL
+              ovirt_username: $OVIRT_USERNAME
+              ovirt_password: $OVIRT_PASSWORD
+              # set a valid path only if ca bundle has content
+              ovirt_cafile: ${OVIRT_CA_BUNDLE:+$OVIRT_CAFILE}
+              ovirt_insecure: $OVIRT_INSECURE
+              EOF
+              [[ -n "$OVIRT_CA_BUNDLE" ]] && echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
+          volumeMounts:
+            - name: config
+              mountPath: /tmp/config
+      containers:
+        - name: csi-driver
+          securityContext:
+            privileged: true
+          image: ${DRIVER_IMAGE}
+          args:
+            - --endpoint=$(CSI_ENDPOINT)
+            - --logtostderr
+            - --v=${LOG_LEVEL}
+            - --node-name=$(KUBE_NODE_NAME)
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:/csi/csi.sock
+            - name: OVIRT_CONFIG
+              value: /tmp/config/ovirt-config.yaml
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: kubelet-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: "Bidirectional"
+            - name: plugin-dir
+              mountPath: /csi
+            - name: device-dir
+              mountPath: /dev
+            - name: udev
+              mountPath: /run/udev
+            - name: config
+              mountPath: /tmp/config
+
+          ports:
+            - name: healthz
+              containerPort: 9808
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 5
+        - name: csi-node-driver-registrar
+          securityContext:
+            privileged: true
+          image: ${NODE_DRIVER_REGISTRAR_IMAGE}
+          args:
+            - --csi-address=$(ADDRESS)
+            - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
+            - --v=${LOG_LEVEL}
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/csi.ovirt.org-reg.sock /csi/csi.sock"]
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/csi.ovirt.org/csi.sock
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+        - name: csi-liveness-probe
+          image: ${LIVENESS_PROBE_IMAGE}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --probe-timeout=3s
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+      volumes:
+        - name: kubelet-dir
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/csi.ovirt.org/
+            type: DirectoryOrCreate
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
+            type: Directory
+        - name: udev
+          hostPath:
+            path: /run/udev
+        - name: config
+          emptyDir: {}

@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovirt-csi-driver-operator
+  namespace: openshift-cluster-csi-drivers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ovirt-csi-driver-operator
+  template:
+    metadata:
+      labels:
+        name: ovirt-csi-driver-operator
+    spec:
+      serviceAccountName: ovirt-csi-driver-operator
+      priorityClassName: system-cluster-critical
+      containers:
+        - name: ovirt-csi-driver-operator
+          image: quay.io/ovirt/csi-driver-operator
+          imagePullPolicy: IfNotPresent
+          tolerations:
+            - key: CriticalAddonsOnly
+              operator: Exists
+          args:
+            - start
+          env:
+            - name: OPERATOR_NAME
+              value: ovirt-csi-driver-operator
+            - name: DRIVER_IMAGE
+              value: quay.io/ovirt/csi-driver:latest
+            - name: PROVISIONER_IMAGE
+              value: quay.io/openshift/origin-csi-external-provisioner:latest
+            - name: ATTACHER_IMAGE
+              value: quay.io/openshift/origin-csi-external-attacher:latest
+            - name: RESIZER_IMAGE
+              value: quay.io/openshift/origin-csi-external-resizer:latest
+            - name: SNAPSHOTTER_IMAGE
+              value: quay.io/openshift/origin-csi-external-snapshotter:latest
+            - name: NODE_DRIVER_REGISTRAR_IMAGE
+              value: quay.io/openshift/origin-csi-node-driver-registrar:latest
+            - name: LIVENESS_PROBE_IMAGE
+              value: quay.io/openshift/origin-csi-livenessprobe:latest
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
