@@ -231,3 +231,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - operator.openshift.io
+  resources:
+  - clustercsidrivers
+  - clustercsidrivers/status
+  verbs:
+  - get
+  - list
+  - watch
+  - update
