@@ -1,6 +1,5 @@
 approvers:
-  - rgolangh
   - bennyz
-reviewers:
+  - bertinatto
+  - jsafrane
   - rgolangh
-  - bennyz
