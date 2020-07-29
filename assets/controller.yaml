@@ -68,6 +68,10 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /tmp/config
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       containers:
         # Warning: the operator expects the first container to be the CSI driver
         - name: csi-driver
@@ -90,6 +94,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
             - name: config
               mountPath: /tmp/config
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
         - name: csi-provisioner
           image: ${PROVISIONER_IMAGE}
           args:
@@ -114,6 +122,10 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       volumes:
         - name: socket-dir
           emptyDir: {}
