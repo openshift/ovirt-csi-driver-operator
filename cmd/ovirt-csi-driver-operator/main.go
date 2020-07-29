@@ -19,6 +19,8 @@ import (
 	"github.com/ovirt/csi-driver-operator/pkg/version"
 )
 
+var nodeName string
+
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -36,6 +38,8 @@ func main() {
 }
 
 func NewOperatorCommand() *cobra.Command {
+	op, _ := operator.NewCSIOperator(&nodeName)
+
 	cmd := &cobra.Command{
 		Use:   "ovirt-csi-driver-operator",
 		Short: "OpenShift oVirt CSI Driver Operator",
@@ -44,15 +48,14 @@ func NewOperatorCommand() *cobra.Command {
 			os.Exit(1)
 		},
 	}
-
 	ctrlCmd := controllercmd.NewControllerCommandConfig(
 		"ovirt-csi-driver-operator",
 		version.Get(),
-		operator.RunOperator,
+		op.RunOperator,
 	).NewCommand()
 	ctrlCmd.Use = "start"
 	ctrlCmd.Short = "Start the oVirt CSI Driver Operator"
-
+	ctrlCmd.Flags().StringVar(&nodeName, "node", "", "kubernetes node name")
 	cmd.AddCommand(ctrlCmd)
 
 	return cmd
