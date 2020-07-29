@@ -62,7 +62,7 @@ spec:
               ovirt_cafile: ${OVIRT_CA_BUNDLE:+$OVIRT_CAFILE}
               ovirt_insecure: $OVIRT_INSECURE
               EOF
-              [[ -n "$OVIRT_CA_BUNDLE" ]] && echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
+              if [[ -n "$OVIRT_CA_BUNDLE" ]]; then echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE ; fi
           volumeMounts:
             - name: config
               mountPath: /tmp/config
