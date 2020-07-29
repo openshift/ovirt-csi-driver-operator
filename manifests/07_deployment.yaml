@@ -46,7 +46,7 @@ spec:
                 secretKeyRef:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
-          image: busybox
+          image: quay.io/ovirt/csi-driver:latest
           command:
             - /bin/sh
             - -c
@@ -60,7 +60,7 @@ spec:
               ovirt_cafile: ${OVIRT_CA_BUNDLE:+$OVIRT_CAFILE}
               ovirt_insecure: $OVIRT_INSECURE
               EOF
-              [[ -n "$OVIRT_CA_BUNDLE" ]] && echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE
+              if [[ -n "$OVIRT_CA_BUNDLE" ]]; then echo "$OVIRT_CA_BUNDLE" > $OVIRT_CAFILE ; fi
           volumeMounts:
             - name: config
               mountPath: /tmp/config
@@ -68,7 +68,7 @@ spec:
       containers:
         - name: ovirt-csi-driver-operator
           image: quay.io/ovirt/csi-driver-operator
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           tolerations:
             - key: CriticalAddonsOnly
               operator: Exists
