@@ -142,6 +142,10 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /tmp/config
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       containers:
         # Warning: the operator expects the first container to be the CSI driver
         - name: csi-driver
@@ -164,6 +168,10 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
             - name: config
               mountPath: /tmp/config
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
         - name: csi-provisioner
           image: ${PROVISIONER_IMAGE}
           args:
@@ -188,6 +196,10 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       volumes:
         - name: socket-dir
           emptyDir: {}
@@ -377,6 +389,10 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /tmp/config
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       containers:
         - name: csi-driver
           securityContext:
@@ -421,6 +437,10 @@ spec:
             timeoutSeconds: 3
             periodSeconds: 10
             failureThreshold: 5
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
         - name: csi-node-driver-registrar
           securityContext:
             privileged: true
@@ -443,6 +463,10 @@ spec:
               mountPath: /csi
             - name: registration-dir
               mountPath: /registration
+          resources:
+            requests:
+              memory: 20Mi
+              cpu: 5m
         - name: csi-liveness-probe
           image: ${LIVENESS_PROBE_IMAGE}
           args:
@@ -451,6 +475,10 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
+          resources:
+            requests:
+              memory: 20Mi
+              cpu: 5m
       volumes:
         - name: kubelet-dir
           hostPath:
