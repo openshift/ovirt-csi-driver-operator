@@ -124,7 +124,7 @@ spec:
                 secretKeyRef:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
-          image: busybox
+          image: ${DRIVER_IMAGE}
           command:
             - /bin/sh
             - -c
@@ -371,7 +371,7 @@ spec:
                 secretKeyRef:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
-          image: busybox
+          image: ${DRIVER_IMAGE}
           command:
             - /bin/sh
             - -c
