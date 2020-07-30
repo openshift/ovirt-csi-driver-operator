@@ -46,7 +46,7 @@ spec:
                 secretKeyRef:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
-          image: quay.io/ovirt/csi-driver:latest
+          image: ${DRIVER_IMAGE}
           command:
             - /bin/sh
             - -c
