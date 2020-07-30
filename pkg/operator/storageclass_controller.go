@@ -53,7 +53,6 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, syncCtx factory.S
 		return err
 	}
 
-	// Create StorageClass after the fact since we need to figure out a default Storage Domain for it
 	storageClass := generateStorageClass(sdName)
 	existingStorageClass, err := c.kubeClient.StorageV1().StorageClasses().Get(ctx, storageClass.Name, metav1.GetOptions{})
 	if err != nil {

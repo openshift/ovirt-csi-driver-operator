@@ -56,11 +56,6 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		return err
 	}
 
-	if err != nil {
-		klog.Errorf(fmt.Sprintf("Could not add storage class: %v"))
-		return err
-	}
-
 	csiControllerSet := csicontrollerset.NewCSIControllerSet(
 		operatorClient,
 		controllerConfig.EventRecorder,
