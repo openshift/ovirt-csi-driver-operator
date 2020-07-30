@@ -67,7 +67,7 @@ spec:
 
       containers:
         - name: ovirt-csi-driver-operator
-          image: quay.io/ovirt/csi-driver-operator
+          image: quay.io/openshift/csi-driver-operator
           imagePullPolicy: IfNotPresent
           tolerations:
             - key: CriticalAddonsOnly

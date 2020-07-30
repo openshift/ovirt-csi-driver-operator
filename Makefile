@@ -4,7 +4,7 @@ all: build
 .PHONY: all
 
 TARGET_NAME=csi-driver-operator
-IMAGE_REF=quay.io/ovirt/$(TARGET_NAME):latest
+IMAGE_REF=quay.io/openshift/$(TARGET_NAME):latest
 GO_TEST_PACKAGES :=./pkg/... ./cmd/...
 IMAGE_REGISTRY?=registry.svc.ci.openshift.org
 
