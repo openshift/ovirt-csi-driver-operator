@@ -89,16 +89,18 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		generated.MustAsset,
 		"credentials.yaml",
 		dynamicClient,
-	).WithCSIDriverController(
-		"OvirtDriverController",
-		instanceName,
-		operandName,
-		defaultNamespace,
+	).WithCSIDriverControllerService(
+		"OvirtDriverControllerServiceController",
 		generated.MustAsset,
+		"controller.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
-		csicontrollerset.WithControllerService("controller.yaml"),
-		csicontrollerset.WithNodeService("node.yaml"),
+	).WithCSIDriverNodeService(
+		"OvirtDriverNodeServiceController",
+		generated.MustAsset,
+		"node.yaml",
+		kubeClient,
+		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 	)
 
 	scController := NewOvirtStrogeClassController(
