@@ -39,3 +39,10 @@ rules:
     verbs:
       - get
       - create
+
+  - apiGroups:
+      - storage.k8s.io
+    resources:
+      - volumeattachments/status
+    verbs:
+      - patch
