@@ -16,6 +16,14 @@ spec:
     spec:
       serviceAccountName: ovirt-csi-driver-operator
       priorityClassName: system-cluster-critical
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: "NoSchedule"
       initContainers:
         - name: prepare-ovirt-config
           env:
@@ -69,9 +77,6 @@ spec:
         - name: ovirt-csi-driver-operator
           image: quay.io/openshift/csi-driver-operator
           imagePullPolicy: IfNotPresent
-          tolerations:
-            - key: CriticalAddonsOnly
-              operator: Exists
           args:
             - start
             - "--node=$(KUBE_NODE_NAME)"
