@@ -12,7 +12,6 @@ import (
 	goc "github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/ovirt/csi-driver-operator/pkg/generated"
-	dynamicclient "k8s.io/client-go/dynamic"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -47,7 +46,6 @@ func NewCSIOperator(nodeName *string) (*CSIOperator, error) {
 func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
 	// Create clientsets and informers
 	kubeClient := kubeclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
-	dynamicClient := dynamicclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
 	gvr := opv1.SchemeGroupVersion.WithResource("clustercsidrivers")
@@ -83,12 +81,6 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 			"rbac/snapshotter_binding.yaml",
 			"rbac/snapshotter_role.yaml",
 		},
-	).WithCredentialsRequestController(
-		"OvirtDriverCredentialsRequestController",
-		defaultNamespace,
-		generated.MustAsset,
-		"credentials.yaml",
-		dynamicClient,
 	).WithCSIDriverControllerService(
 		"OvirtDriverControllerServiceController",
 		generated.MustAsset,
