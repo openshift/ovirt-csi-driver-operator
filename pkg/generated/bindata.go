@@ -2,9 +2,7 @@
 // sources:
 // assets/controller.yaml
 // assets/controller_sa.yaml
-// assets/credentials.yaml
 // assets/csidriver.yaml
-// assets/namespace.yaml
 // assets/node.yaml
 // assets/node_sa.yaml
 // assets/rbac/attacher_binding.yaml
@@ -249,35 +247,6 @@ func controller_saYaml() (*asset, error) {
 	return a, nil
 }
 
-var _credentialsYaml = []byte(`apiVersion: cloudcredential.openshift.io/v1
-kind: CredentialsRequest
-metadata:
-  name: openshift-cluster-csi-drivers
-  namespace: openshift-cloud-credential-operator
-spec:
-  secretRef:
-    name: ovirt-credentials
-    namespace: openshift-cluster-csi-drivers
-  providerSpec:
-    apiVersion: cloudcredential.openshift.io/v1
-    kind: OvirtProviderSpec
-`)
-
-func credentialsYamlBytes() ([]byte, error) {
-	return _credentialsYaml, nil
-}
-
-func credentialsYaml() (*asset, error) {
-	bytes, err := credentialsYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "credentials.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _csidriverYaml = []byte(`apiVersion: storage.k8s.io/v1
 kind: CSIDriver
 metadata:
@@ -301,27 +270,6 @@ func csidriverYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "csidriver.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _namespaceYaml = []byte(`apiVersion: v1
-kind: Namespace
-metadata:
-  name: openshift-cluster-csi-drivers
-`)
-
-func namespaceYamlBytes() ([]byte, error) {
-	return _namespaceYaml, nil
-}
-
-func namespaceYaml() (*asset, error) {
-	bytes, err := namespaceYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "namespace.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -1000,9 +948,7 @@ func AssetNames() []string {
 var _bindata = map[string]func() (*asset, error){
 	"controller.yaml":                         controllerYaml,
 	"controller_sa.yaml":                      controller_saYaml,
-	"credentials.yaml":                        credentialsYaml,
 	"csidriver.yaml":                          csidriverYaml,
-	"namespace.yaml":                          namespaceYaml,
 	"node.yaml":                               nodeYaml,
 	"node_sa.yaml":                            node_saYaml,
 	"rbac/attacher_binding.yaml":              rbacAttacher_bindingYaml,
@@ -1062,9 +1008,7 @@ type bintree struct {
 var _bintree = &bintree{nil, map[string]*bintree{
 	"controller.yaml":    {controllerYaml, map[string]*bintree{}},
 	"controller_sa.yaml": {controller_saYaml, map[string]*bintree{}},
-	"credentials.yaml":   {credentialsYaml, map[string]*bintree{}},
 	"csidriver.yaml":     {csidriverYaml, map[string]*bintree{}},
-	"namespace.yaml":     {namespaceYaml, map[string]*bintree{}},
 	"node.yaml":          {nodeYaml, map[string]*bintree{}},
 	"node_sa.yaml":       {node_saYaml, map[string]*bintree{}},
 	"rbac": {nil, map[string]*bintree{
