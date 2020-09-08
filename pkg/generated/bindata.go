@@ -178,9 +178,8 @@ spec:
         - name: csi-provisioner
           image: ${PROVISIONER_IMAGE}
           args:
-            - --provisioner=csi.ovirt.org
             - --csi-address=$(ADDRESS)
-            - --feature-gates=Topology=true
+            - --default-fstype=ext4
             - --v=${LOG_LEVEL}
           env:
             - name: ADDRESS
