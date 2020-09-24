@@ -164,7 +164,8 @@ spec:
               value: /tmp/config/ovirt-config.yaml
           ports:
             - name: healthz
-              containerPort: 19808
+              # Due to hostNetwork, this port is open on a node!
+              containerPort: 10301
               protocol: TCP
           volumeMounts:
             - name: socket-dir
@@ -378,7 +379,8 @@ spec:
 
           ports:
             - name: healthz
-              containerPort: 9808
+              # Due to hostNetwork, this port is open on a node!
+              containerPort: 10300
               protocol: TCP
           livenessProbe:
             httpGet:

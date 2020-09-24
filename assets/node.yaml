@@ -103,7 +103,8 @@ spec:
 
           ports:
             - name: healthz
-              containerPort: 9808
+              # Due to hostNetwork, this port is open on a node!
+              containerPort: 10300
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -148,6 +149,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
+            - --health-port=10300
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
