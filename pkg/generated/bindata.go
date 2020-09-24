@@ -164,7 +164,8 @@ spec:
               value: /tmp/config/ovirt-config.yaml
           ports:
             - name: healthz
-              containerPort: 19808
+              # Due to hostNetwork, this port is open on a node!
+              containerPort: 10301
               protocol: TCP
           volumeMounts:
             - name: socket-dir
@@ -198,6 +199,19 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
+        - name: csi-liveness-probe
+          image: ${LIVENESS_PROBE_IMAGE}
+          args:
+            - --csi-address=/csi/csi.sock
+            - --probe-timeout=3s
+            - --health-port=10301
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
           resources:
             requests:
               memory: 50Mi
@@ -378,7 +392,8 @@ spec:
 
           ports:
             - name: healthz
-              containerPort: 9808
+              # Due to hostNetwork, this port is open on a node!
+              containerPort: 10300
               protocol: TCP
           livenessProbe:
             httpGet:
@@ -423,6 +438,7 @@ spec:
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
+            - --health-port=10300
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
