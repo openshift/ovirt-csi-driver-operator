@@ -38,7 +38,11 @@ func main() {
 }
 
 func NewOperatorCommand() *cobra.Command {
-	op, _ := operator.NewCSIOperator(&nodeName)
+	op, err := operator.NewCSIOperator(&nodeName)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 
 	cmd := &cobra.Command{
 		Use:   "ovirt-csi-driver-operator",
