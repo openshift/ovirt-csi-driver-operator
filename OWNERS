@@ -3,3 +3,5 @@ approvers:
   - bertinatto
   - jsafrane
   - rgolangh
+component: "Storage"
+subcomponent: "oVirt CSI Driver"
