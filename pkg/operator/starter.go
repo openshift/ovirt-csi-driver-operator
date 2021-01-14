@@ -3,10 +3,15 @@ package operator
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
+	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
 	"github.com/ovirt/csi-driver-operator/internal/ovirt"
 
 	opv1 "github.com/openshift/api/operator/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	configinformers "github.com/openshift/client-go/config/informers/externalversions"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
 	goc "github.com/openshift/library-go/pkg/operator/genericoperatorclient"
@@ -53,6 +58,9 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	if err != nil {
 		return err
 	}
+	// Create config clientset and informer. This is used to get the HTTP proxy setting
+	configClient := configclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
+	configInformers := configinformers.NewSharedInformerFactory(configClient, 20*time.Minute)
 
 	csiControllerSet := csicontrollerset.NewCSIControllerSet(
 		operatorClient,
@@ -81,18 +89,24 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 			"rbac/snapshotter_binding.yaml",
 			"rbac/snapshotter_role.yaml",
 		},
+	).WithCSIConfigObserverController(
+		"OvirtDriverCSIConfigObserverController",
+		configInformers,
 	).WithCSIDriverControllerService(
 		"OvirtDriverControllerServiceController",
 		generated.MustAsset,
 		"controller.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		nil,
+		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
 	).WithCSIDriverNodeService(
 		"OvirtDriverNodeServiceController",
 		generated.MustAsset,
 		"node.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
 	)
 
 	scController := NewOvirtStrogeClassController(

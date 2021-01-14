@@ -9,6 +9,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/openshift/api v0.0.0-20201214114959-164a2fb63b5f
 	github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
+	github.com/openshift/client-go v0.0.0-20201214125552-e615e336eb49
 	github.com/openshift/library-go v0.0.0-20210113192829-cfbb3f4c80c2
 	github.com/ovirt/go-ovirt v0.0.0-20201023070830-77e357c438d5
 	github.com/prometheus/client_golang v1.7.1
