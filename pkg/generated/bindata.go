@@ -75,6 +75,8 @@ apiVersion: apps/v1
 metadata:
   name: ovirt-csi-driver-controller
   namespace: openshift-cluster-csi-drivers
+  annotations:
+    config.openshift.io/inject-proxy: csi-driver
 spec:
   selector:
     matchLabels:
@@ -292,6 +294,8 @@ apiVersion: apps/v1
 metadata:
   name: ovirt-csi-driver-node
   namespace: openshift-cluster-csi-drivers
+  annotations:
+    config.openshift.io/inject-proxy: csi-driver
 spec:
   selector:
     matchLabels:
