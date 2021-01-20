@@ -405,7 +405,7 @@ spec:
               port: healthz
             initialDelaySeconds: 10
             timeoutSeconds: 3
-            periodSeconds: 10
+            periodSeconds: 30
             failureThreshold: 5
           resources:
             requests:
