@@ -97,7 +97,12 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 
 	for _, attachment := range attachments.MustAttachments().Slice() {
 		if attachment.MustBootable() {
-			d, _ := conn.FollowLink(attachment.MustDisk())
+			d, err := conn.FollowLink(attachment.MustDisk())
+			if err != nil {
+				klog.Errorf("Failed to follow disk: %v", err)
+				return "", err
+			}
+
 			disk, ok := d.(*ovirtsdk.Disk)
 			klog.Info(fmt.Sprintf("Extracting Storage Domain from disk: %s", disk.MustId()))
 
@@ -106,7 +111,11 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 				return "", err
 			}
 
-			s, _ := conn.FollowLink(disk.MustStorageDomains().Slice()[0])
+			s, err := conn.FollowLink(disk.MustStorageDomains().Slice()[0])
+			if err != nil {
+				klog.Errorf("Failed to follow Storage Domain: %v", err)
+				return "", err
+			}
 			sd, ok := s.(*ovirtsdk.StorageDomain)
 
 			klog.Info(fmt.Sprintf("Fetched Storage Domain %s", sd.MustName()))
