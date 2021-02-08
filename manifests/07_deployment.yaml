@@ -75,7 +75,7 @@ spec:
 
       containers:
         - name: ovirt-csi-driver-operator
-          image: quay.io/openshift/csi-driver-operator
+          image: quay.io/openshift/origin-ovirt-csi-driver-operator:latest
           imagePullPolicy: IfNotPresent
           args:
             - start
@@ -84,7 +84,7 @@ spec:
             - name: OPERATOR_NAME
               value: ovirt-csi-driver-operator
             - name: DRIVER_IMAGE
-              value: quay.io/ovirt/csi-driver:latest
+              value: quay.io/openshift/origin-ovirt-csi-driver:latest
             - name: PROVISIONER_IMAGE
               value: quay.io/openshift/origin-csi-external-provisioner:latest
             - name: ATTACHER_IMAGE
