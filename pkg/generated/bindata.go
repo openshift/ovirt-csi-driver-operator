@@ -81,7 +81,6 @@ spec:
   selector:
     matchLabels:
       app: ovirt-csi-driver-controller
-  serviceName: ovirt-csi-driver-controller
   replicas: 1
   template:
     metadata:
