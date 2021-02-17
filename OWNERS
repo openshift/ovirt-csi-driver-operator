@@ -3,5 +3,6 @@ approvers:
   - bertinatto
   - jsafrane
   - rgolangh
+  - Gal-Zaidman
 component: "Storage"
 subcomponent: "oVirt CSI Driver"
