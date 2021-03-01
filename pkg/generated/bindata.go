@@ -299,6 +299,10 @@ spec:
   selector:
     matchLabels:
       app: ovirt-csi-driver-node
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
