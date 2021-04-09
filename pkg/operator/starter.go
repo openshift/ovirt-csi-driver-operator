@@ -17,6 +17,7 @@ import (
 	goc "github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	"github.com/ovirt/csi-driver-operator/pkg/generated"
+	"k8s.io/client-go/dynamic"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -62,6 +63,11 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	configClient := configclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	configInformers := configinformers.NewSharedInformerFactory(configClient, 20*time.Minute)
 
+	dynamicClient, err := dynamic.NewForConfig(controllerConfig.KubeConfig)
+	if err != nil {
+		return err
+	}
+
 	csiControllerSet := csicontrollerset.NewCSIControllerSet(
 		operatorClient,
 		controllerConfig.EventRecorder,
@@ -77,6 +83,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 			"csidriver.yaml",
 			"controller_sa.yaml",
 			"node_sa.yaml",
+			"service.yaml",
 			"rbac/attacher_binding.yaml",
 			"rbac/attacher_role.yaml",
 			"rbac/controller_privileged_binding.yaml",
@@ -88,6 +95,10 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 			"rbac/resizer_role.yaml",
 			"rbac/snapshotter_binding.yaml",
 			"rbac/snapshotter_role.yaml",
+			"rbac/kube_rbac_proxy_role.yaml",
+			"rbac/kube_rbac_proxy_binding.yaml",
+			"rbac/prometheus_role.yaml",
+			"rbac/prometheus_rolebinding.yaml",
 		},
 	).WithCSIConfigObserverController(
 		"OvirtDriverCSIConfigObserverController",
@@ -107,6 +118,11 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
+	).WithServiceMonitorController(
+		"OvirtDriverServiceMonitorController",
+		dynamicClient,
+		generated.Asset,
+		"servicemonitor.yaml",
 	)
 
 	scController := NewOvirtStrogeClassController(
