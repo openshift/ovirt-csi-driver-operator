@@ -135,6 +135,7 @@ spec:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
           image: ${DRIVER_IMAGE}
+          imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
@@ -160,6 +161,7 @@ spec:
         # Warning: the operator expects the first container to be the CSI driver
         - name: csi-driver
           image: ${DRIVER_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
@@ -185,6 +187,7 @@ spec:
               cpu: 10m
         - name: csi-provisioner
           image: ${PROVISIONER_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
             - --default-fstype=ext4
@@ -220,6 +223,7 @@ spec:
             name: metrics-serving-cert
         - name: csi-attacher
           image: ${ATTACHER_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
             - --http-endpoint=localhost:8203
@@ -256,6 +260,7 @@ spec:
             name: metrics-serving-cert
         - name: csi-liveness-probe
           image: ${LIVENESS_PROBE_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
@@ -397,6 +402,7 @@ spec:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
           image: ${DRIVER_IMAGE}
+          imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
             - -c
@@ -423,6 +429,7 @@ spec:
           securityContext:
             privileged: true
           image: ${DRIVER_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --endpoint=$(CSI_ENDPOINT)
             - --logtostderr
@@ -471,6 +478,7 @@ spec:
           securityContext:
             privileged: true
           image: ${NODE_DRIVER_REGISTRAR_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --csi-address=$(ADDRESS)
             - --kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)
@@ -495,6 +503,7 @@ spec:
               cpu: 5m
         - name: csi-liveness-probe
           image: ${LIVENESS_PROBE_IMAGE}
+          imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
