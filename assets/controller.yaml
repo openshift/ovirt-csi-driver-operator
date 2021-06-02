@@ -121,6 +121,10 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
           # kube-rbac-proxy for external-provisioner container.
           # Provides https proxy for http-based external-provisioner metrics.
         - name: provisioner-kube-rbac-proxy
