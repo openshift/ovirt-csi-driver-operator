@@ -37,17 +37,6 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 # It will generate target "image-$(1)" for builing the image an binding it as a prerequisite to target "images".
 $(call build-image,$(TARGET_NAME),$(IMAGE_REF),./Dockerfile,.)
 
-# This will call a macro called "add-bindata" which will generate bindata specific targets based on the parameters:
-# $0 - macro name
-# $1 - target suffix
-# $2 - input dirs
-# $3 - prefix
-# $4 - pkg
-# $5 - output
-# It will generate targets {update,verify}-bindata-$(1) logically grouping them in unsuffixed versions of these targets
-# and also hooked into {update,verify}-generated for broader integration.
-$(call add-bindata,generated,./assets/...,assets,generated,pkg/generated/bindata.go)
-
 # make target aliases
 fmt: verify-gofmt
 		

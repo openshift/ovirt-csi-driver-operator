@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
+	"github.com/ovirt/csi-driver-operator/assets"
 	"github.com/ovirt/csi-driver-operator/internal/ovirt"
 
 	opv1 "github.com/openshift/api/operator/v1"
@@ -16,7 +17,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
 	goc "github.com/openshift/library-go/pkg/operator/genericoperatorclient"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-	"github.com/ovirt/csi-driver-operator/pkg/generated"
 	"k8s.io/client-go/dynamic"
 	kubeclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -77,8 +77,9 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	).WithStaticResourcesController(
 		"OvirtDriverStaticResources",
 		kubeClient,
+		dynamicClient,
 		kubeInformersForNamespaces,
-		generated.Asset,
+		assets.ReadFile,
 		[]string{
 			"csidriver.yaml",
 			"controller_sa.yaml",
@@ -105,23 +106,25 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		configInformers,
 	).WithCSIDriverControllerService(
 		"OvirtDriverControllerServiceController",
-		generated.MustAsset,
+		assets.ReadFile,
 		"controller.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		configInformers,
 		nil,
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
 	).WithCSIDriverNodeService(
 		"OvirtDriverNodeServiceController",
-		generated.MustAsset,
+		assets.ReadFile,
 		"node.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
+		nil,
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
 	).WithServiceMonitorController(
 		"OvirtDriverServiceMonitorController",
 		dynamicClient,
-		generated.Asset,
+		assets.ReadFile,
 		"servicemonitor.yaml",
 	)
 
