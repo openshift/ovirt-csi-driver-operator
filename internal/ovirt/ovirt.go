@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	ovirtsdk "github.com/ovirt/go-ovirt"
 	"gopkg.in/yaml.v2"
@@ -90,6 +91,7 @@ func GetOvirtConfig() (*Config, error) {
 	}
 
 	err = yaml.Unmarshal(in, &c)
+	c.Password = strconv.Quote(c.Password)
 	if err != nil {
 		return nil, err
 	}
