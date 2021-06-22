@@ -49,3 +49,5 @@ make build verify
 ```bash
 make image
 ```
+
+- To test your modified CSI driver operator on a test cluster follow [Docs](docs/testing-custom-operator.md)
