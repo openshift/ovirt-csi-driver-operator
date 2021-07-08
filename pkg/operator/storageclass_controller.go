@@ -146,7 +146,7 @@ func generateStorageClass(storageDomainName string) *storagev1.StorageClass {
 		Parameters:           map[string]string{"storageDomainName": storageDomainName, "thinProvisioning": "true"},
 		ReclaimPolicy:        &reclaimPolicy,
 		MountOptions:         []string{},
-		AllowVolumeExpansion: boolPtr(false),
+		AllowVolumeExpansion: boolPtr(true),
 	}
 
 	expected.Annotations = map[string]string{

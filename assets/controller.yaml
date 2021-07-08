@@ -198,6 +198,23 @@ spec:
             requests:
               memory: 50Mi
               cpu: 10m
+        - name: csi-resizer
+          image: ${RESIZER_IMAGE}
+          imagePullPolicy: IfNotPresent
+          args:
+            - --csi-address=$(ADDRESS)
+            - --v=${LOG_LEVEL}
+            - --timeout=180s
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
       volumes:
         - name: socket-dir
           emptyDir: {}

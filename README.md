@@ -26,7 +26,7 @@ parameters:
   storageDomainName: "YOUR-STORAGE-DOMAIN"
   thinProvisioning: "true"
 reclaimPolicy: Delete
-allowVolumeExpansion: false
+allowVolumeExpansion: true
 volumeBindingMode: Immediate
 EOF
 ```
