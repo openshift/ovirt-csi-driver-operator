@@ -115,6 +115,7 @@ spec:
             - --default-fstype=ext4
             - --http-endpoint=localhost:8202
             - --v=${LOG_LEVEL}
+            - --timeout=180s
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -154,6 +155,7 @@ spec:
             - --csi-address=$(ADDRESS)
             - --http-endpoint=localhost:8203
             - --v=${LOG_LEVEL}
+            - --timeout=120s
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -204,7 +206,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --v=${LOG_LEVEL}
-            - --timeout=180s
+            - --timeout=120s
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
