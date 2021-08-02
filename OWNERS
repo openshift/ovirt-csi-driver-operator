@@ -2,7 +2,7 @@ approvers:
   - bennyz
   - bertinatto
   - jsafrane
-  - rgolangh
+  - janosdebugs
   - Gal-Zaidman
 component: "Storage"
 subcomponent: "oVirt CSI Driver"
