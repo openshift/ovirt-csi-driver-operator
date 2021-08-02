@@ -19,7 +19,6 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	golang.mk \
 	targets/openshift/deps-gomod.mk \
 	targets/openshift/images.mk \
-	targets/openshift/bindata.mk \
 )
 
 # All the available targets are listed in <this-file>.help
@@ -39,7 +38,7 @@ $(call build-image,$(TARGET_NAME),$(IMAGE_REF),./Dockerfile,.)
 
 # make target aliases
 fmt: verify-gofmt
-		
+
 vet: verify-govet
 
 .PHONY: vendor
