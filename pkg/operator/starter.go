@@ -85,6 +85,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		[]string{
 			"csidriver.yaml",
 			"controller_sa.yaml",
+			"controller_pdb.yaml",
 			"node_sa.yaml",
 			"service.yaml",
 			"rbac/attacher_binding.yaml",
