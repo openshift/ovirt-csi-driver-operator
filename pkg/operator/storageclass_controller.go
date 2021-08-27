@@ -65,7 +65,7 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, syncCtx factory.S
 		storageClass = existingStorageClass
 	}
 
-	_, _, err = resourceapply.ApplyStorageClass(c.kubeClient.StorageV1(), c.eventRecorder, storageClass)
+	_, _, err = resourceapply.ApplyStorageClass(ctx, c.kubeClient.StorageV1(), c.eventRecorder, storageClass)
 	if err != nil {
 		klog.Errorf(fmt.Sprintf("Failed to apply storage class: %v", err))
 		return err

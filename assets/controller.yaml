@@ -9,7 +9,11 @@ spec:
   selector:
     matchLabels:
       app: ovirt-csi-driver-controller
-  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
   template:
     metadata:
       labels:
@@ -26,6 +30,15 @@ spec:
         - key: node-role.kubernetes.io/master
           operator: Exists
           effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: ovirt-csi-driver-controller
+                topologyKey: kubernetes.io/hostname
       initContainers:
         - name: prepare-ovirt-config
           env:
@@ -123,6 +136,7 @@ spec:
             - --default-fstype=ext4
             - --http-endpoint=localhost:8202
             - --v=${LOG_LEVEL}
+            - --leader-election
             - --timeout=180s
           env:
             - name: ADDRESS
@@ -163,6 +177,7 @@ spec:
             - --csi-address=$(ADDRESS)
             - --http-endpoint=localhost:8203
             - --v=${LOG_LEVEL}
+            - --leader-election
             - --timeout=120s
           env:
             - name: ADDRESS
@@ -214,6 +229,7 @@ spec:
           args:
             - --csi-address=$(ADDRESS)
             - --v=${LOG_LEVEL}
+            - --leader-election
             - --timeout=120s
           env:
             - name: ADDRESS
