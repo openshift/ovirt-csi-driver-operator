@@ -137,6 +137,9 @@ spec:
             - --http-endpoint=localhost:8202
             - --v=${LOG_LEVEL}
             - --leader-election
+            - --leader-election-lease-duration=${LEADER_ELECTION_LEASE_DURATION}
+            - --leader-election-renew-deadline=${LEADER_ELECTION_RENEW_DEADLINE}
+            - --leader-election-retry-period=${LEADER_ELECTION_RETRY_PERIOD}
             - --timeout=180s
           env:
             - name: ADDRESS
@@ -178,6 +181,9 @@ spec:
             - --http-endpoint=localhost:8203
             - --v=${LOG_LEVEL}
             - --leader-election
+            - --leader-election-lease-duration=${LEADER_ELECTION_LEASE_DURATION}
+            - --leader-election-renew-deadline=${LEADER_ELECTION_RENEW_DEADLINE}
+            - --leader-election-retry-period=${LEADER_ELECTION_RETRY_PERIOD}
             - --timeout=120s
           env:
             - name: ADDRESS
@@ -230,6 +236,9 @@ spec:
             - --csi-address=$(ADDRESS)
             - --v=${LOG_LEVEL}
             - --leader-election
+            - --leader-election-lease-duration=${LEADER_ELECTION_LEASE_DURATION}
+            - --leader-election-renew-deadline=${LEADER_ELECTION_RENEW_DEADLINE}
+            - --leader-election-retry-period=${LEADER_ELECTION_RETRY_PERIOD}
             - --timeout=120s
           env:
             - name: ADDRESS
