@@ -4,5 +4,6 @@ approvers:
   - jsafrane
   - janosdebugs
   - Gal-Zaidman
+  - dobsonj
 component: "Storage"
 subcomponent: "oVirt CSI Driver"
