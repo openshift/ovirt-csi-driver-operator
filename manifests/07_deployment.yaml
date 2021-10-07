@@ -4,6 +4,8 @@ kind: Deployment
 metadata:
   name: ovirt-csi-driver-operator
   namespace: openshift-cluster-csi-drivers
+  annotations:
+    config.openshift.io/inject-proxy: ovirt-csi-driver-operator
 spec:
   replicas: 1
   selector:
@@ -11,6 +13,8 @@ spec:
       name: ovirt-csi-driver-operator
   template:
     metadata:
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
       labels:
         name: ovirt-csi-driver-operator
     spec:
@@ -54,7 +58,11 @@ spec:
                 secretKeyRef:
                   name: ovirt-credentials
                   key: ovirt_ca_bundle
-          image: ${DRIVER_IMAGE}
+          image: quay.io/openshift/origin-ovirt-csi-driver-operator:latest
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
           command:
             - /bin/sh
             - -c
@@ -72,14 +80,18 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /tmp/config
-
       containers:
         - name: ovirt-csi-driver-operator
           image: quay.io/openshift/origin-ovirt-csi-driver-operator:latest
           imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: 50Mi
+              cpu: 10m
           args:
             - start
             - "--node=$(KUBE_NODE_NAME)"
+            - -v=2
           env:
             - name: OPERATOR_NAME
               value: ovirt-csi-driver-operator
@@ -97,6 +109,8 @@ spec:
               value: quay.io/openshift/origin-csi-node-driver-registrar:latest
             - name: LIVENESS_PROBE_IMAGE
               value: quay.io/openshift/origin-csi-livenessprobe:latest
+            - name: KUBE_RBAC_PROXY_IMAGE
+              value: quay.io/openshift/origin-kube-rbac-proxy:latest
             - name: POD_NAME
               valueFrom:
                 fieldRef:

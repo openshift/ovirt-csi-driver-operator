@@ -33,9 +33,18 @@ rules:
     verbs:
       - '*'
   - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - '*'
+  - apiGroups:
       - monitoring.coreos.com
     resources:
       - servicemonitors
     verbs:
       - get
       - create
+      - update
+      - patch
+      - delete
