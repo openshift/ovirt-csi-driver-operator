@@ -56,7 +56,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 	nodeInformer := kubeInformersForNamespaces.InformersFor("").Core().V1().Nodes()
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
-	gvr := opv1.SchemeGroupVersion.WithResource("clustercsidrivers")
+	gvr := opv1.GroupVersion.WithResource("clustercsidrivers")
 	operatorClient, dynamicInformers, err := goc.NewClusterScopedOperatorClientWithConfigName(controllerConfig.KubeConfig, gvr, instanceName)
 	if err != nil {
 		return err
@@ -83,26 +83,26 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		kubeInformersForNamespaces,
 		assets.ReadFile,
 		[]string{
-			"csidriver.yaml",
 			"controller_sa.yaml",
-			"controller_pdb.yaml",
 			"node_sa.yaml",
-			"service.yaml",
-			"rbac/attacher_binding.yaml",
 			"rbac/attacher_role.yaml",
-			"rbac/controller_privileged_binding.yaml",
-			"rbac/node_privileged_binding.yaml",
 			"rbac/privileged_role.yaml",
-			"rbac/provisioner_binding.yaml",
 			"rbac/provisioner_role.yaml",
-			"rbac/resizer_binding.yaml",
 			"rbac/resizer_role.yaml",
-			"rbac/snapshotter_binding.yaml",
 			"rbac/snapshotter_role.yaml",
 			"rbac/kube_rbac_proxy_role.yaml",
-			"rbac/kube_rbac_proxy_binding.yaml",
 			"rbac/prometheus_role.yaml",
+			"rbac/attacher_binding.yaml",
+			"rbac/node_privileged_binding.yaml",
+			"rbac/controller_privileged_binding.yaml",
+			"rbac/provisioner_binding.yaml",
+			"rbac/resizer_binding.yaml",
+			"rbac/snapshotter_binding.yaml",
+			"rbac/kube_rbac_proxy_binding.yaml",
 			"rbac/prometheus_rolebinding.yaml",
+			"controller_pdb.yaml",
+			"service.yaml",
+			"csidriver.yaml",
 		},
 	).WithCSIConfigObserverController(
 		"OvirtDriverCSIConfigObserverController",

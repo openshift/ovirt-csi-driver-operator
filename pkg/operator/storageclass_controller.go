@@ -46,7 +46,7 @@ func NewOvirtStrogeClassController(operatorClient v1helpers.OperatorClient,
 	).ToController("OvirtStorageClassController", eventRecorder)
 }
 
-func (c *OvirtStrogeClassController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncContext) error {
 	sdName, err := c.getStorageDomain(ctx)
 	if err != nil {
 		klog.Errorf(fmt.Sprintf("Failed to get Storage Domain name: %v", err))
