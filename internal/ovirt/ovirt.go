@@ -1,7 +1,6 @@
 package ovirt
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -55,9 +54,6 @@ func (o *Client) GetConnection() (*ovirtsdk.Connection, error) {
 
 var defaultOvirtConfigEnvVar = "OVIRT_CONFIG"
 var defaultOvirtConfigPath = filepath.Join(os.Getenv("HOME"), ".ovirt", "ovirt-config.yaml")
-
-// ErrCanNotLoadOvirtConfig is returned when the config file fails to load.
-var ErrCanNotLoadOvirtConfig error = errors.New("can not load ovirt config")
 
 // Config holds oVirt api access details.
 type Config struct {
