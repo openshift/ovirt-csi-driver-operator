@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -56,7 +57,7 @@ func NewOperatorCommand() *cobra.Command {
 		"ovirt-csi-driver-operator",
 		version.Get(),
 		op.RunOperator,
-	).NewCommand()
+	).NewCommandWithContext(context.Background())
 	ctrlCmd.Use = "start"
 	ctrlCmd.Short = "Start the oVirt CSI Driver Operator"
 	ctrlCmd.Flags().StringVar(&nodeName, "node", "", "kubernetes node name")
