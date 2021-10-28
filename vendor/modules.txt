@@ -61,7 +61,7 @@ github.com/google/go-cmp/cmp/internal/value
 ## explicit
 github.com/google/gofuzz
 github.com/google/gofuzz/bytesource
-# github.com/google/uuid v1.1.2
+# github.com/google/uuid v1.3.0
 github.com/google/uuid
 # github.com/googleapis/gnostic v0.5.5
 github.com/googleapis/gnostic/compiler
@@ -208,9 +208,16 @@ github.com/openshift/library-go/pkg/operator/resourcesynccontroller
 github.com/openshift/library-go/pkg/operator/staticresourcecontroller
 github.com/openshift/library-go/pkg/operator/v1helpers
 github.com/openshift/library-go/pkg/serviceability
-# github.com/ovirt/go-ovirt v0.0.0-20201023070830-77e357c438d5
-## explicit
+# github.com/ovirt/go-ovirt v0.0.0-20210809163552-d4276e35d3db
 github.com/ovirt/go-ovirt
+# github.com/ovirt/go-ovirt-client v0.7.1
+## explicit
+github.com/ovirt/go-ovirt-client
+# github.com/ovirt/go-ovirt-client-log-klog v1.0.0
+## explicit
+github.com/ovirt/go-ovirt-client-log-klog
+# github.com/ovirt/go-ovirt-client-log/v2 v2.1.0
+github.com/ovirt/go-ovirt-client-log/v2
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pkg/profile v1.3.0

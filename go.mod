@@ -8,7 +8,8 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20210712174854-1bb7fd1518d3
 	github.com/openshift/client-go v0.0.0-20210730113412-1811c1b3fc0e
 	github.com/openshift/library-go v0.0.0-20210830145332-4a9873bf5e74
-	github.com/ovirt/go-ovirt v0.0.0-20201023070830-77e357c438d5
+	github.com/ovirt/go-ovirt-client v0.7.1
+	github.com/ovirt/go-ovirt-client-log-klog v1.0.0
 	github.com/prometheus/client_golang v1.11.0
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
