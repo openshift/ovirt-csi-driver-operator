@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
 	"github.com/ovirt/csi-driver-operator/assets"
 	"github.com/ovirt/csi-driver-operator/internal/ovirt"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
 
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -33,7 +34,7 @@ const (
 )
 
 type CSIOperator struct {
-	ovirtClient *ovirt.Client
+	ovirtClient ovirtclient.Client
 	nodeName    *string
 }
 

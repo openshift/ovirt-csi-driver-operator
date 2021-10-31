@@ -2,14 +2,11 @@ package operator
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
-	"github.com/ovirt/csi-driver-operator/internal/ovirt"
-	ovirtsdk "github.com/ovirt/go-ovirt"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,14 +20,14 @@ type OvirtStrogeClassController struct {
 	kubeClient                kubernetes.Interface
 	kubeInformersForNamespace v1helpers.KubeInformersForNamespaces
 	eventRecorder             events.Recorder
-	ovirtClient               *ovirt.Client
+	ovirtClient               ovirtclient.Client
 	nodeName                  string
 }
 
 func NewOvirtStrogeClassController(operatorClient v1helpers.OperatorClient,
 	kubeClient kubernetes.Interface,
 	kubeInformersForNamespace v1helpers.KubeInformersForNamespaces,
-	ovirtClient *ovirt.Client,
+	ovirtClient ovirtclient.Client,
 	nodeName string,
 	eventRecorder events.Recorder) factory.Controller {
 	c := &OvirtStrogeClassController{
@@ -49,7 +46,7 @@ func NewOvirtStrogeClassController(operatorClient v1helpers.OperatorClient,
 func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncContext) error {
 	sdName, err := c.getStorageDomain(ctx)
 	if err != nil {
-		klog.Errorf(fmt.Sprintf("Failed to get Storage Domain name: %v", err))
+		klog.Errorf("failed to get Storage Domain name: %w", err)
 		return err
 	}
 
@@ -57,17 +54,18 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncCon
 	existingStorageClass, err := c.kubeClient.StorageV1().StorageClasses().Get(ctx, storageClass.Name, metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			klog.Errorf(fmt.Sprintf("Failed to issue get request for storage class %s, error: %v", storageClass.Name, err))
+			klog.Errorf(
+				"failed to issue get request for storage class %s, error: %w", storageClass.Name, err)
 			return err
 		}
 	} else {
-		klog.Info(fmt.Sprintf("Storage Class %s already exists", existingStorageClass.Name))
+		klog.Info("Storage Class %s already exists", existingStorageClass.Name)
 		storageClass = existingStorageClass
 	}
 
 	_, _, err = resourceapply.ApplyStorageClass(ctx, c.kubeClient.StorageV1(), c.eventRecorder, storageClass)
 	if err != nil {
-		klog.Errorf(fmt.Sprintf("Failed to apply storage class: %v", err))
+		klog.Errorf("failed to apply storage class: %w", err)
 		return err
 	}
 
@@ -77,54 +75,31 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncCon
 func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (string, error) {
 	get, err := c.kubeClient.CoreV1().Nodes().Get(ctx, c.nodeName, metav1.GetOptions{})
 	if err != nil {
-		klog.Errorf(fmt.Sprintf("Failed to get node: %v", err))
+		klog.Errorf("failed to get node: %w", err)
 		return "", err
 	}
 	nodeID := get.Status.NodeInfo.SystemUUID
 
-	conn, err := c.ovirtClient.GetConnection()
+	attachments, err := c.ovirtClient.ListDiskAttachments(nodeID, ovirtclient.ContextStrategy(ctx))
 	if err != nil {
-		klog.Errorf(fmt.Sprintf("Connection to ovirt failed: %v", err))
+		klog.Errorf("failed to fetch attachments: %w", err)
 		return "", err
 	}
 
-	vmService := conn.SystemService().VmsService().VmService(nodeID)
-	attachments, err := vmService.DiskAttachmentsService().List().Send()
-	if err != nil {
-		klog.Errorf(fmt.Sprintf("Failed to fetch attachments: %v", err))
-		return "", err
-	}
-
-	for _, attachment := range attachments.MustAttachments().Slice() {
-		if attachment.MustBootable() {
-			d, err := conn.FollowLink(attachment.MustDisk())
+	for _, attachment := range attachments {
+		if attachment.Bootable() {
+			d, err := attachment.Disk(ovirtclient.ContextStrategy(ctx))
 			if err != nil {
-				klog.Errorf("Failed to follow disk: %v", err)
+				klog.Errorf("failed to fetch disk: %w", err)
 				return "", err
 			}
-
-			disk, ok := d.(*ovirtsdk.Disk)
-			klog.Info(fmt.Sprintf("Extracting Storage Domain from disk: %s", disk.MustId()))
-
-			if !ok {
-				klog.Errorf(fmt.Sprintf("Failed to fetch disk: %v", err))
-				return "", err
-			}
-
-			s, err := conn.FollowLink(disk.MustStorageDomains().Slice()[0])
+			klog.Info("Extracting Storage Domain from disk: %s", d.ID())
+			storageDoamin, err := c.ovirtClient.GetStorageDomain(d.StorageDomainID())
 			if err != nil {
-				klog.Errorf("Failed to follow Storage Domain: %v", err)
+				klog.Errorf("failed while finding storage domain by ID %s, error: %w", d.StorageDomainID(), err)
 				return "", err
 			}
-			sd, ok := s.(*ovirtsdk.StorageDomain)
-
-			klog.Info(fmt.Sprintf("Fetched Storage Domain %s", sd.MustName()))
-			if !ok {
-				klog.Errorf(fmt.Sprintf("Failed to fetch Storage Domain: %v", err))
-				return "", err
-			}
-
-			return sd.MustName(), nil
+			return storageDoamin.Name(), nil
 		}
 	}
 
