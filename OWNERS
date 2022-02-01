@@ -3,6 +3,7 @@ approvers:
   - janosdebugs
   - eslutsky
   - mmartinv
+  - bkhizgiy
   # Approvers from the OCP storage team
   - jsafrane
   - dobsonj
