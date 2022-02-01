@@ -27,10 +27,11 @@ import (
 
 const (
 	// Operand and operator run in the same namespace
-	defaultNamespace = "openshift-cluster-csi-drivers"
-	operatorName     = "ovirt-csi-driver-operator"
-	operandName      = "ovirt-csi-driver"
-	instanceName     = "csi.ovirt.org"
+	defaultNamespace   = "openshift-cluster-csi-drivers"
+	operatorName       = "ovirt-csi-driver-operator"
+	operandName        = "ovirt-csi-driver"
+	instanceName       = "csi.ovirt.org"
+	trustedCAConfigMap = "ovirt-csi-driver-trusted-ca-bundle"
 )
 
 type CSIOperator struct {
@@ -56,6 +57,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	kubeClient := kubeclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 	nodeInformer := kubeInformersForNamespaces.InformersFor("").Core().V1().Nodes()
+	configMapInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().ConfigMaps()
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
 	gvr := opv1.GroupVersion.WithResource("clustercsidrivers")
 	operatorClient, dynamicInformers, err := goc.NewClusterScopedOperatorClientWithConfigName(controllerConfig.KubeConfig, gvr, instanceName)
@@ -86,6 +88,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		[]string{
 			"controller_sa.yaml",
 			"node_sa.yaml",
+			"cabundle_cm.yaml",
 			"rbac/attacher_role.yaml",
 			"rbac/privileged_role.yaml",
 			"rbac/provisioner_role.yaml",
@@ -115,17 +118,30 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
 		configInformers,
-		[]factory.Informer{nodeInformer.Informer()},
+		[]factory.Informer{
+			nodeInformer.Informer(),
+			configMapInformer.Informer(),
+		},
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
 		csidrivercontrollerservicecontroller.WithReplicasHook(nodeInformer.Lister()),
+		csidrivercontrollerservicecontroller.WithCABundleDeploymentHook(
+			defaultNamespace,
+			trustedCAConfigMap,
+			configMapInformer,
+		),
 	).WithCSIDriverNodeService(
 		"OvirtDriverNodeServiceController",
 		assets.ReadFile,
 		"node.yaml",
 		kubeClient,
 		kubeInformersForNamespaces.InformersFor(defaultNamespace),
-		nil,
+		[]factory.Informer{configMapInformer.Informer()},
 		csidrivernodeservicecontroller.WithObservedProxyDaemonSetHook(),
+		csidrivernodeservicecontroller.WithCABundleDaemonSetHook(
+			defaultNamespace,
+			trustedCAConfigMap,
+			configMapInformer,
+		),
 	).WithServiceMonitorController(
 		"OvirtDriverServiceMonitorController",
 		dynamicClient,
