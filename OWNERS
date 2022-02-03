@@ -1,9 +1,11 @@
 approvers:
-  - bennyz
-  - bertinatto
-  - jsafrane
+  # OCP on RHV team members
   - janosdebugs
-  - Gal-Zaidman
+  - eslutsky
+  - mmartinv
+  - bkhizgiy
+  # Approvers from the OCP storage team
+  - jsafrane
   - dobsonj
 component: "Storage"
 subcomponent: "oVirt CSI Driver"
