@@ -189,7 +189,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
-            - --probe-timeout=3s
+            - --probe-timeout=30s
             - --health-port=10301
           volumeMounts:
             - name: socket-dir

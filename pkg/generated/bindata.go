@@ -267,7 +267,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
-            - --probe-timeout=3s
+            - --probe-timeout=30s
             - --health-port=10301
           volumeMounts:
             - name: socket-dir
@@ -470,10 +470,10 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            initialDelaySeconds: 10
-            timeoutSeconds: 3
-            periodSeconds: 30
-            failureThreshold: 5
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+            periodSeconds: 180
+            failureThreshold: 2
           resources:
             requests:
               memory: 50Mi
@@ -510,7 +510,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
-            - --probe-timeout=3s
+            - --probe-timeout=30s
             - --health-port=10300
           volumeMounts:
             - name: plugin-dir
