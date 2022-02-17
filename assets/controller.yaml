@@ -118,7 +118,7 @@ spec:
               port: healthz
             initialDelaySeconds: 15
             timeoutSeconds: 15
-            periodSeconds: 300
+            periodSeconds: 120
             failureThreshold: 5
           volumeMounts:
             - name: socket-dir
