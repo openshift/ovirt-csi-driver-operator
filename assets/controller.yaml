@@ -118,8 +118,8 @@ spec:
               port: healthz
             initialDelaySeconds: 30
             timeoutSeconds: 30
-            periodSeconds: 120
-            failureThreshold: 3
+            periodSeconds: 180
+            failureThreshold: 2
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
