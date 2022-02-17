@@ -120,8 +120,8 @@ spec:
               port: healthz
             initialDelaySeconds: 30
             timeoutSeconds: 30
-            periodSeconds: 120
-            failureThreshold: 3
+            periodSeconds: 180
+            failureThreshold: 2
           resources:
             requests:
               memory: 50Mi
