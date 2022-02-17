@@ -115,8 +115,8 @@ spec:
             httpGet:
               path: /healthz
               port: healthz
-            initialDelaySeconds: 15
-            timeoutSeconds: 15
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
             periodSeconds: 120
             failureThreshold: 3
           volumeMounts:
@@ -220,7 +220,7 @@ spec:
           imagePullPolicy: IfNotPresent
           args:
             - --csi-address=/csi/csi.sock
-            - --probe-timeout=3s
+            - --probe-timeout=30s
             - --health-port=10301
             - --v=${LOG_LEVEL}
           volumeMounts:
