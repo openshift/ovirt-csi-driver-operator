@@ -2,6 +2,8 @@ package operator
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -20,22 +22,24 @@ type OvirtStrogeClassController struct {
 	kubeClient                kubernetes.Interface
 	kubeInformersForNamespace v1helpers.KubeInformersForNamespaces
 	eventRecorder             events.Recorder
-	ovirtClient               ovirtclient.Client
+	ovirtClientFactory        func() (ovirtclient.Client, error)
 	nodeName                  string
 }
 
-func NewOvirtStrogeClassController(operatorClient v1helpers.OperatorClient,
+func NewOvirtStrogeClassController(
+	operatorClient v1helpers.OperatorClient,
 	kubeClient kubernetes.Interface,
 	kubeInformersForNamespace v1helpers.KubeInformersForNamespaces,
-	ovirtClient ovirtclient.Client,
+	ovirtClientFactory func() (ovirtclient.Client, error),
 	nodeName string,
-	eventRecorder events.Recorder) factory.Controller {
+	eventRecorder events.Recorder,
+) factory.Controller {
 	c := &OvirtStrogeClassController{
-		operatorClient: operatorClient,
-		kubeClient:     kubeClient,
-		eventRecorder:  eventRecorder,
-		ovirtClient:    ovirtClient,
-		nodeName:       nodeName,
+		operatorClient:     operatorClient,
+		kubeClient:         kubeClient,
+		eventRecorder:      eventRecorder,
+		ovirtClientFactory: ovirtClientFactory,
+		nodeName:           nodeName,
 	}
 	return factory.New().WithSync(c.sync).WithSyncDegradedOnError(operatorClient).WithInformers(
 		operatorClient.Informer(),
@@ -80,7 +84,11 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 	}
 	nodeID := get.Status.NodeInfo.SystemUUID
 
-	attachments, err := c.ovirtClient.ListDiskAttachments(nodeID, ovirtclient.ContextStrategy(ctx))
+	ovirtClient, err := c.ovirtClientFactory()
+	if err != nil {
+		return "", fmt.Errorf("failed to create oVirt client (%w)", err)
+	}
+	attachments, err := ovirtClient.ListDiskAttachments(nodeID, ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		klog.Errorf("failed to fetch attachments: %w", err)
 		return "", err
@@ -94,7 +102,7 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 				return "", err
 			}
 			klog.Info("Extracting Storage Domain from disk: %s", d.ID())
-			storageDoamin, err := c.ovirtClient.GetStorageDomain(d.StorageDomainID())
+			storageDoamin, err := ovirtClient.GetStorageDomain(d.StorageDomainID())
 			if err != nil {
 				klog.Errorf("failed while finding storage domain by ID %s, error: %w", d.StorageDomainID(), err)
 				return "", err
