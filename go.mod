@@ -10,7 +10,7 @@ require (
 	github.com/openshift/library-go v0.0.0-20220308152156-227dd2b19774
 	github.com/ovirt/go-ovirt-client v0.7.1
 	github.com/ovirt/go-ovirt-client-log-klog v1.0.0
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/spf13/cobra v1.2.1
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.23.0
