@@ -7,9 +7,10 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
+
 	"github.com/ovirt/csi-driver-operator/assets"
 	"github.com/ovirt/csi-driver-operator/internal/ovirt"
-	ovirtclient "github.com/ovirt/go-ovirt-client"
 
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
@@ -49,6 +50,15 @@ func NewCSIOperator(nodeName *string) (*CSIOperator, error) {
 		ovirtClient: client,
 		nodeName:    nodeName,
 	}, nil
+}
+
+func (o *CSIOperator) getConnection() (ovirtclient.Client, error) {
+	var err error
+	if o.ovirtClient == nil || o.ovirtClient.Test() != nil {
+		o.ovirtClient, err = ovirt.NewClient()
+	}
+
+	return o.ovirtClient, err
 }
 
 func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *controllercmd.ControllerContext) error {
@@ -137,7 +147,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		operatorClient,
 		kubeClient,
 		kubeInformersForNamespaces,
-		o.ovirtClient,
+		o.getConnection,
 		*o.nodeName,
 		controllerConfig.EventRecorder,
 	)
