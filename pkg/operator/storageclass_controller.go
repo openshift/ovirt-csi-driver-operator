@@ -88,7 +88,7 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 	if err != nil {
 		return "", fmt.Errorf("failed to create oVirt client (%w)", err)
 	}
-	attachments, err := ovirtClient.ListDiskAttachments(nodeID, ovirtclient.ContextStrategy(ctx))
+	attachments, err := ovirtClient.ListDiskAttachments(ovirtclient.VMID(nodeID), ovirtclient.ContextStrategy(ctx))
 	if err != nil {
 		klog.Errorf("failed to fetch attachments: %w", err)
 		return "", err
@@ -102,9 +102,13 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 				return "", err
 			}
 			klog.Info("Extracting Storage Domain from disk: %s", d.ID())
-			storageDoamin, err := ovirtClient.GetStorageDomain(d.StorageDomainID())
+			storageDomains := d.StorageDomainIDs()
+			if len(storageDomains) == 0 {
+				return "", fmt.Errorf("no storage domains found on disk %s", d.ID())
+			}
+			storageDoamin, err := ovirtClient.GetStorageDomain(storageDomains[0])
 			if err != nil {
-				klog.Errorf("failed while finding storage domain by ID %s, error: %w", d.StorageDomainID(), err)
+				klog.Errorf("failed while finding storage domain by ID %s, error: %w", storageDomains[0], err)
 				return "", err
 			}
 			return storageDoamin.Name(), nil

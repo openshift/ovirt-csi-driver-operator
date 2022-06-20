@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	ovirtclient "github.com/ovirt/go-ovirt-client"
-	kloglogger "github.com/ovirt/go-ovirt-client-log-klog"
+	kloglogger "github.com/ovirt/go-ovirt-client-log-klog/v2"
 	"gopkg.in/yaml.v2"
 )
 

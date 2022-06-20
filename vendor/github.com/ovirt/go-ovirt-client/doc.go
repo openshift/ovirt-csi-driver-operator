@@ -17,13 +17,13 @@ There are several ways to create a client instance. The most basic way is to use
     // Create the client
     client, err := ovirtclient.New(
         // URL
-        "https://localhost/ovirt-engine/",
+        "https://localhost/ovirt-engine/api",
         // Username
         "admin@internal",
         // Password
         "super-secret",
         // Pull CA certificates from the operating system.
-        // This won't work on Windows. See below for an extended example.
+        // This won't work on Windows before Go 1.18. See below for an extended example.
         ovirtclient.TLS().CACertsFromSystem(),
         // Don't log.
         ovirtclientlog.NewNOOPLogger(),
@@ -52,25 +52,29 @@ The test helper can work in two ways:
 Either it sets up test fixtures in the mock client, or it sets up a live connection and identifies a usable storage
 domain, cluster, etc. for testing purposes.
 
-The easiest way to set up the test helper is using environment variables. To do that, you can use the
-ovirtclient.NewTestHelperFromEnv() function:
+The ovirtclient.NewMockTestHelper() function can be used to create a test helper with a mock client in the backend:
 
-    helper := ovirtclient.NewTestHelperFromEnv(ovirtclientlog.NewNOOPLogger())
+    helper := ovirtclient.NewMockTestHelper(ovirtclientlog.NewNOOPLogger())
+
+The easiest way to set up the test helper for a live connection is by using environment variables. To do that, you
+can use the ovirtclient.NewLiveTestHelperFromEnv() function:
+
+    helper := ovirtclient.NewLiveTestHelperFromEnv(ovirtclientlog.NewNOOPLogger())
 
 This function will inspect environment variables to determine if a connection to a live oVirt engine can be
 established. The following environment variables are supported:
 
   OVIRT_URL
 
-URL of the oVirt engine.
+URL of the oVirt engine API. Mandatory.
 
   OVIRT_USERNAME
 
-The username for the oVirt engine.
+The username for the oVirt engine. Mandatory.
 
   OVIRT_PASSWORD
 
-The password for the oVirt engine
+The password for the oVirt engine. Mandatory.
 
   OVIRT_CAFILE
 
@@ -114,22 +118,26 @@ You can also create the test helper manually:
         // Create a logger that logs to the standard Go log here
         logger := ovirtclientlog.NewTestLogger(t)
 
-        // Set to true to use in-memory mock, otherwise this will use a live connection.
-        mock := false
+        // Set to true to use in-memory mock, otherwise this will use a live connection
+        isMock := true
+
+        // The following parameters define which infrastructure parts to use for testing
+        params := ovirtclient.TestHelperParams().
+            WithClusterID(ovirtclient.ClusterID(os.Getenv("OVIRT_CLUSTER_ID"))).
+            WithBlankTemplateID(ovirtclient.TemplateID(os.Getenv("OVIRT_BLANK_TEMPLATE_ID"))).
+            WithStorageDomainID(ovirtclient.StorageDomainID(os.Getenv("OVIRT_STORAGE_DOMAIN_ID"))).
+            WithSecondaryStorageDomainID(ovirtclient.StorageDomainID(os.Getenv("OVIRT_SECONDARY_STORAGE_DOMAIN_ID"))).
+            WithVNICProfileID(ovirtclient.VNICProfileID(os.Getenv("OVIRT_VNIC_PROFILE_ID")))
 
         // Create the test helper
         helper, err := ovirtclient.NewTestHelper(
-            "https://localhost/ovirt-engine/",
+            "https://localhost/ovirt-engine/api",
             "admin@internal",
             "super-secret",
+            // Leave these empty for auto-detection / fixture setup
+            params,
             ovirtclient.TLS().CACertsFromSystem(),
-            // The following parameters define which infrastructure parts to use for testing.
-            // Leave these empty for auto-detection / fixture setup.
-            os.Getenv("OVIRT_CLUSTER_ID"),
-            os.Getenv("OVIRT_BLANK_TEMPLATE_ID"),
-            os.Getenv("OVIRT_STORAGE_DOMAIN_ID"),
-            os.Getenv("OVIRT_VNIC_PROFILE_ID"),
-            mock,
+            isMock,
             logger,
         )
         if err != nil {
@@ -144,14 +152,7 @@ Logging
 
 This library provides extensive logging. Each API interaction is logged on the debug level, and other messages are
 added on other levels. In order to provide logging this library uses the go-ovirt-client-log
-(https://github.com/oVirt/go-ovirt-client-log) interface definition:
-
-    type Logger interface {
-        Debugf(format string, args ...interface{})
-        Infof(format string, args ...interface{})
-        Warningf(format string, args ...interface{})
-        Errorf(format string, args ...interface{})
-    }
+(https://github.com/oVirt/go-ovirt-client-log) interface definition.
 
 As long as your logger implements this interface, you will be able to receive log messages. The logging
 library also provides a few built-in loggers. For example, you can log via the default Go log interface:
@@ -174,7 +175,7 @@ Modern-day oVirt engines run secured with TLS. This means that the client needs 
 server is presenting. This is controlled by the tls parameter of the New() function. You can implement your own source
 by implementing the TLSProvider interface, but the package also includes a ready-to-use provider.
 
-Create the provider using the TLS() functionL
+Create the provider using the TLS() function:
 
     tls := ovirtclient.TLS()
 
@@ -187,6 +188,9 @@ Now you need to add your oVirt engine certificate to your system trust root.
 
 If you don't want to, or can't add the certificate to the system trust root, you can also directly provide it
 to the client.
+
+    // Add certificates from a certificate pool you have previously initialized.
+    tls.CACertsFromCertPool(certpool)
 
     // Add certificates from an in-memory byte slice. Certificates must be in PEM format.
     tls.CACertsFromMemory([]byte("-----BEGIN CERTIFICATE-----\n..."))

@@ -41,6 +41,10 @@ type BuildableTLSProvider interface {
 	// CACertsFromSystem adds the system certificate store. This may fail because the certificate store is not available
 	// or not supported on the platform.
 	CACertsFromSystem() BuildableTLSProvider
+
+	// CACertsFromCertPool sets a certificate pool to use as a source for certificates. This is incompatible with  the
+	// CACertsFromSystem call as both create a certificate pool. This function must not be called twice.
+	CACertsFromCertPool(*x509.CertPool) BuildableTLSProvider
 }
 
 // TLS creates a BuildableTLSProvider that can be used to easily add trusted CA certificates and generally follows best
@@ -57,6 +61,7 @@ type standardTLSProvider struct {
 	caCerts     [][]byte
 	files       []string
 	directories []standardTLSProviderDirectory
+	certPool    *x509.CertPool
 	system      bool
 	configured  bool
 }
@@ -71,6 +76,17 @@ func (s *standardTLSProvider) Insecure() TLSProvider {
 	defer s.lock.Unlock()
 	s.configured = true
 	s.insecure = true
+	return s
+}
+
+func (s *standardTLSProvider) CACertsFromCertPool(certPool *x509.CertPool) BuildableTLSProvider {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	if s.certPool != nil {
+		panic(newError(EConflict, "the CACertsFromCertPool function has been called twice"))
+	}
+	s.configured = true
+	s.certPool = certPool
 	return s
 }
 
@@ -124,9 +140,6 @@ func (s *standardTLSProvider) CreateTLSConfig() (*tls.Config, error) {
 		}, nil
 	}
 	tlsConfig := &tls.Config{
-		// Based on Mozilla intermediate compatibility:
-		// https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
-		MinVersion: tls.VersionTLS12,
 		CipherSuites: []uint16{
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
@@ -135,15 +148,28 @@ func (s *standardTLSProvider) CreateTLSConfig() (*tls.Config, error) {
 			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 		},
+		PreferServerCipherSuites: true,
+		SessionTicketsDisabled:   false,
+		SessionTicketKey:         [32]byte{},
+		ClientSessionCache:       nil,
+		// Based on Mozilla intermediate compatibility:
+		// https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29
+		MinVersion: tls.VersionTLS12,
+		MaxVersion: 0,
 		CurvePreferences: []tls.CurveID{
 			tls.CurveP256, tls.CurveP384,
 		},
-		InsecureSkipVerify: false,
+		DynamicRecordSizingDisabled: false,
+		Renegotiation:               0,
+		KeyLogWriter:                nil,
 	}
 
-	certPool, err := s.createCertPool()
-	if err != nil {
-		return nil, err
+	certPool := s.certPool
+	if certPool == nil {
+		var err error
+		if certPool, err = s.createCertPool(); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.addCertsFromMemory(certPool); err != nil {
 		return nil, err
@@ -238,13 +264,19 @@ func (s *standardTLSProvider) addCertsFromMemory(certPool *x509.CertPool) error 
 }
 
 func (s *standardTLSProvider) createCertPool() (*x509.CertPool, error) {
+	if s.system && s.certPool != nil {
+		return nil, newError(ETLSError, "both system and cert pool are specified, these options are incompatible")
+	}
+	if s.certPool != nil {
+		return s.certPool, nil
+	}
 	if !s.system {
 		return x509.NewCertPool(), nil
 	}
 
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
-		// This is the case on Windows where the system certificate pool is not available.
+		// This is the case on Windows before go 1.18 where the system certificate pool is not available.
 		// See https://github.com/golang/go/issues/16736
 		return nil, wrap(err, ETLSError, "system cert pool not available")
 	}
