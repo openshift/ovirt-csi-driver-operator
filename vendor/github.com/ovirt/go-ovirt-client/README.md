@@ -1,8 +1,4 @@
-# goVirt: an easy-to-use overlay for the oVirt Go SDK
-
-<p align="center"><strong>🚧 This library is early in development. 🚧</strong></p>
-
-This library is early in development, and the API may change at any time until version 1.0.0. We hope to stabilize the API soon, providing the core functionality on an as-needed basis. If you need an API integrated, please open an issue. 
+# go-ovirt-client: an easy-to-use overlay for the oVirt Go SDK
 
 This library provides an easy-to-use overlay for the automatically generated [Go SDK for oVirt](https://github.com/ovirt/go-ovirt). It does *not* replace the Go SDK. It implements the functions of the SDK only partially and is primarily used by the [oVirt Terraform provider](https://github.com/ovirt/terraform-provider-ovirt/).
 
@@ -20,59 +16,68 @@ You can then create a client instance like this:
 package main
 
 import (
-    "github.com/ovirt/go-client-log"
-    "github.com/ovirt/go-ovirt-client"
+	"crypto/x509"
+
+	"github.com/ovirt/go-client-log"
+	"github.com/ovirt/go-ovirt-client"
 )
 
 func main() {
-    // Create a logger that logs to the standard Go log here:
-    logger := ovirtclientlog.NewGoLogLogger(nil)
+	// Create a logger that logs to the standard Go log here:
+	logger := ovirtclientlog.NewGoLogLogger(nil)
 
-    // Create an ovirtclient.TLSProvider implementation. This allows for simple
-    // TLS configuration.
+	// Create an ovirtclient.TLSProvider implementation. This allows for simple
+	// TLS configuration.
 	tls := ovirtclient.TLS()
 
 	// Add certificates from an in-memory byte slice. Certificates must be in PEM format.
 	tls.CACertsFromMemory(caCerts)
-	
+
 	// Add certificates from a single file. Certificates must be in PEM format.
 	tls.CACertsFromFile("/path/to/file.pem")
 
 	// Add certificates from a directory. Optionally, regular expressions can be passed that must match the file
 	// names.
-	tls.CACertsFromDir("/path/to/certs", regexp.MustCompile(`\.pem`)) 
+	tls.CACertsFromDir(
+		"/path/to/certs",
+		regexp.MustCompile(`\.pem`),
+	)
 
-	// Add system certificates
+	// Add system certificates. This doesn't work on Windows before Go 1.18.
 	tls.CACertsFromSystem()
+
+	// Add a custom cert pool as a source of certificates. This option is
+	// incompatible with CACertsFromSystem.
+	// tls.CACertsFromCertPool(x509.NewCertPool())
 
 	// Disable certificate verification. This is a bad idea, please don't do this.
 	tls.Insecure()
 
-    // Create a new goVirt instance:
-    client, err := ovirtclient.New(
-        // URL to your oVirt engine API here:
-        "https://your-ovirt-engine/ovirt-engine/api/",
-        // Username here:
-        "admin@internal",
-        // Password here:
-        "password-here",
-        // Pass the TLS provider here:
-        tls,
-        // Pass the logger here:
-        logger,
-        // Pass in extra settings here. Must implement the ovirtclient.ExtraSettings interface.
-        nil,
-    )
-    if err != nil {
-        // Handle error, here in a really crude way:
-        panic(err)
-    }
-    // Use client. Please use the code completion in your IDE to
-    // discover the functions. Each is well documented.
-    upload, err := client.StartUploadToNewDisk(
-        //...
-    )
-    //....
+	// Create a new goVirt instance:
+	client, err := ovirtclient.New(
+		// URL to your oVirt engine API here:
+		"https://your-ovirt-engine/ovirt-engine/api/",
+		// Username here:
+		"admin@internal",
+		// Password here:
+		"password-here",
+		// Pass the TLS provider here:
+		tls,
+		// Pass the logger here:
+		logger,
+		// Pass in extra settings here. Must implement the ovirtclient.ExtraSettings interface.
+		nil,
+	)
+	if err != nil {
+		// Handle error, here in a really crude way:
+		panic(err)
+	}
+	// Use client. Please use the code completion in your IDE to
+	// discover the functions. Each is well documented.
+	upload, err := client.StartUploadToNewDisk(
+		//...
+	)
+	//....
 }
 ```
 
@@ -83,17 +88,23 @@ The test helper can work in two ways:
 Either it sets up test fixtures in the mock client, or it sets up a live connection and identifies a usable storage
 domain, cluster, etc. for testing purposes.
 
-The easiest way to set up the test helper is using environment variables. To do that, you can use the
-ovirtclient.NewTestHelperFromEnv() function:
+The ovirtclient.NewMockTestHelper() function can be used to create a test helper with a mock client in the backend:
 
 ```go
-helper := ovirtclient.NewTestHelperFromEnv(ovirtclientlog.NewNOOPLogger())
+helper := ovirtclient.NewMockTestHelper(ovirtclientlog.NewNOOPLogger())
+```
+
+The easiest way to set up the test helper for a live connection is by using environment variables. To do that, you 
+can use the `ovirtclient.NewLiveTestHelperFromEnv()` function:
+
+```go
+helper := ovirtclient.NewLiveTestHelperFromEnv(ovirtclientlog.NewNOOPLogger())
 ```
 
 This function will inspect environment variables to determine if a connection to a live oVirt engine can be estabilshed.
 The following environment variables are supported:
 
-- `OVIRT_URL`: URL of the oVirt engine.
+- `OVIRT_URL`: URL of the oVirt engine API.
 - `OVIRT_USERNAME`: The username for the oVirt engine.
 - `OVIRT_PASSWORD`: The password for the oVirt engine
 - `OVIRT_CAFILE`: A file containing the CA certificate in PEM format.
@@ -108,41 +119,45 @@ You can also create the test helper manually:
 
 ```go
 import (
-    "os"
-    "testing"
+	"os"
+	"testing"
 
-    ovirtclient "github.com/ovirt/go-ovirt-client"
-    ovirtclientlog "github.com/ovirt/go-ovirt-client-log"
+	ovirtclient "github.com/ovirt/go-ovirt-client"
+	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v3"
 )
 
 func TestSomething(t *testing.T) {
-    // Create a logger that logs to the standard Go log here
-    logger := ovirtclientlog.NewTestLogger(t)
+	// Create a logger that logs to the standard Go log here
+	logger := ovirtclientlog.NewTestLogger(t)
 
-    // Set to true to use in-memory mock, otherwise this will use a live connection.
-    mock := false
+	// Set to true to use in-memory mock, otherwise this will use a live connection
+	isMock := true
 
-    // Create the test helper
-    helper, err := ovirtclient.NewTestHelper(
-        "https://localhost/ovirt-engine/",
-        "admin@internal",
-        "super-secret",
-        ovirtclient.TLS().CACertsFromSystem(),
-        // The following parameters define which infrastructure parts to use for testing.
-        // Leave these empty for auto-detection / fixture setup.
-        os.Getenv("OVIRT_CLUSTER_ID"),
-        os.Getenv("OVIRT_BLANK_TEMPLATE_ID"),
-        os.Getenv("OVIRT_STORAGE_DOMAIN_ID"),
-        os.Getenv("OVIRT_VNIC_PROFILE_ID"),
-        mock,
-        logger,
-    )
-    if err != nil {
-        t.Fatal(err)
-    }
-    // Fetch the cluster ID for testing
-    clusterID := helper.GetClusterID()
-    //...
+	// The following parameters define which infrastructure parts to use for testing
+	params := ovirtclient.TestHelperParams().
+		WithClusterID(ovirtclient.ClusterID(os.Getenv("OVIRT_CLUSTER_ID"))).
+		WithBlankTemplateID(ovirtclient.TemplateID(os.Getenv("OVIRT_BLANK_TEMPLATE_ID"))).
+		WithStorageDomainID(ovirtclient.StorageDomainID(os.Getenv("OVIRT_STORAGE_DOMAIN_ID"))).
+		WithSecondaryStorageDomainID(ovirtclient.StorageDomainID(os.Getenv("OVIRT_SECONDARY_STORAGE_DOMAIN_ID"))).
+		WithVNICProfileID(ovirtclient.VNICProfileID(os.Getenv("OVIRT_VNIC_PROFILE_ID")))
+
+	// Create the test helper
+	helper, err := ovirtclient.NewTestHelper(
+		"https://localhost/ovirt-engine/api",
+		"admin@internal",
+		"super-secret",
+		// Leave these empty for auto-detection / fixture setup
+		params,
+		ovirtclient.TLS().CACertsFromSystem(),
+		isMock,
+		logger,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Fetch the cluster ID for testing
+	clusterID := helper.GetClusterID()
+	//...
 }
 ```
 

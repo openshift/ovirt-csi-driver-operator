@@ -3,11 +3,12 @@ package ovirtclient
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"time"
 
-	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v2"
+	ovirtclientlog "github.com/ovirt/go-ovirt-client-log/v3"
 )
 
 // retry is a function that will automatically retry calling the function specified in the what parameter until the
@@ -32,21 +33,23 @@ func retry(
 	if logger == nil {
 		logger = &noopLogger{}
 	}
-	logger.Debugf("%s%s...", strings.ToUpper(action[:1]), action[1:])
+	logger.Infof("%s%s...", strings.ToUpper(action[:1]), action[1:])
 	for {
 		err := what()
 		if err == nil {
-			logger.Debugf("Completed %s.", action)
+			logger.Infof("Completed %s.", action)
 			return nil
 		}
 		for _, r := range retries {
 			if err := r.Continue(err, action); err != nil {
-				logger.Debugf("Giving up %s (%v)", action, err)
+				logger.Infof("Giving up %s (%v)", action, err)
 				return err
 			}
 		}
 
-		logRetry(action, logger, err)
+		if !recoverFailure(action, retries, err, logger) {
+			logRetry(action, logger, err)
+		}
 		// Here we create a select statement with a dynamic number of cases. We use this because a) select{} only
 		// supports fixed cases and b) the channel types are different. Context returns a <-chan struct{}, while
 		// time.After() returns <-chan time.Time. Go doesn't support type assertions, so we have to result to
@@ -55,11 +58,13 @@ func retry(
 		for _, r := range retries {
 			c := r.Wait(err)
 			if c != nil {
-				chans = append(chans, reflect.SelectCase{
-					Dir:  reflect.SelectRecv,
-					Chan: reflect.ValueOf(c),
-					Send: reflect.Value{},
-				})
+				chans = append(
+					chans, reflect.SelectCase{
+						Dir:  reflect.SelectRecv,
+						Chan: reflect.ValueOf(c),
+						Send: reflect.Value{},
+					},
+				)
 			}
 		}
 		if len(chans) == 0 {
@@ -71,10 +76,37 @@ func retry(
 		}
 		chosen, _, _ := reflect.Select(chans)
 		if err := retries[chosen].OnWaitExpired(err, action); err != nil {
-			logger.Debugf("Giving up %s (%v)", action, err)
+			logger.Infof("Giving up %s (%v)", action, err)
 			return err
 		}
 	}
+}
+
+func recoverFailure(action string, retries []RetryInstance, err error, logger ovirtclientlog.Logger) bool {
+	var e EngineError
+	if !errors.As(err, &e) {
+		return false
+	}
+	if !e.CanRecover() {
+		return false
+	}
+	logger.Debugf("Failed %s, attempting automatic recovery... (%s)", err.Error())
+	for _, r := range retries {
+		recoveredErr := r.Recover(err)
+		switch {
+		case recoveredErr == nil:
+			logger.Debugf("Automatic recovery successful, retrying %s...", action)
+			return true
+		// We purposefully ignore the wrapped errors here and only compare 1:1 to make sure we only use this case if
+		// the errors don't match. If the errors match the retry strategy couldn't do anything with the error.
+		// Do not change this to errors.Is!
+		case recoveredErr != err: //nolint:errorlint
+			logger.Errorf("Error encountered during automatic recovery of %s (%v).", action, recoveredErr)
+			return false
+		}
+	}
+	logger.Debugf("No appropriate recovery mechanism found for failure on %s, retrying without recovery (%v).")
+	return false
 }
 
 func logRetry(action string, logger ovirtclientlog.Logger, err error) {
@@ -83,7 +115,7 @@ func logRetry(action string, logger ovirtclientlog.Logger, err error) {
 	isConflict := false
 	if errors.As(err, &e) {
 		isPending = e.HasCode(EPending)
-		isConflict = e.HasCode(EConflict)
+		isConflict = e.HasCode(EConflict) || e.HasCode(EDiskLocked) || e.HasCode(EVMLocked)
 	}
 	if isPending || isConflict {
 		logger.Debugf("Still %s, retrying... (%s)", action, err.Error())
@@ -93,6 +125,10 @@ func logRetry(action string, logger ovirtclientlog.Logger, err error) {
 }
 
 type noopLogger struct{}
+
+func (n noopLogger) WithContext(_ context.Context) ovirtclientlog.Logger {
+	return n
+}
 
 func (n noopLogger) Debugf(_ string, _ ...interface{}) {}
 
@@ -119,6 +155,9 @@ type RetryStrategy interface {
 	// CanTimeout indicates that the retry strategy can properly abort a loop. At least one retry strategy with
 	// this capability needs to be passed.
 	CanTimeout() bool
+	// CanRecover indicates that the retry strategy can recoverFailure from a failure. In this case the Recover method will be
+	// called on errors.
+	CanRecover() bool
 }
 
 type retryStrategyContainer struct {
@@ -126,6 +165,11 @@ type retryStrategyContainer struct {
 	canClassifyErrors bool
 	canWait           bool
 	canTimeout        bool
+	canRecover        bool
+}
+
+func (r retryStrategyContainer) CanRecover() bool {
+	return r.canRecover
 }
 
 func (r retryStrategyContainer) Get() RetryInstance {
@@ -150,6 +194,11 @@ type RetryInstance interface {
 	// Continue returns an error if no more tries should be attempted. The error will be returned directly from the
 	// retry function. The passed action parameters can be used to create a meaningful error message.
 	Continue(err error, action string) error
+	// Recover gives the strategy a chance to recoverFailure from a failure. This function is called if an execution errored
+	// before the next cycle happens. The recovery method should return nil if the recovery was successful, and an
+	// error otherwise. It may return the same error it received to indicate that it could not do anything with the
+	// error.
+	Recover(err error) error
 	// Wait returns a channel that is closed when the wait time expires. The channel can have any content, so it is
 	// provided as an interface{}. This function may return nil if it doesn't provide a wait time.
 	Wait(err error) interface{}
@@ -171,11 +220,18 @@ func ContextStrategy(ctx context.Context) RetryStrategy {
 		false,
 		false,
 		true,
+		false,
 	}
 }
 
 type contextStrategy struct {
 	ctx context.Context
+}
+
+func (c *contextStrategy) Recover(err error) error { return err }
+
+func (c *contextStrategy) Name() string {
+	return "context strategy"
 }
 
 func (c *contextStrategy) Continue(_ error, _ string) error {
@@ -208,12 +264,19 @@ func ExponentialBackoff(factor uint8) RetryStrategy {
 		false,
 		true,
 		false,
+		false,
 	}
 }
 
 type exponentialBackoff struct {
 	waitTime time.Duration
 	factor   uint8
+}
+
+func (e *exponentialBackoff) Recover(err error) error { return err }
+
+func (e *exponentialBackoff) Name() string {
+	return fmt.Sprintf("exponential backoff strategy of %d seconds", e.waitTime/time.Second)
 }
 
 func (e *exponentialBackoff) Wait(_ error) interface{} {
@@ -239,10 +302,17 @@ func AutoRetry() RetryStrategy {
 		true,
 		false,
 		false,
+		false,
 	}
 }
 
 type autoRetryStrategy struct{}
+
+func (a *autoRetryStrategy) Recover(err error) error { return err }
+
+func (a *autoRetryStrategy) Name() string {
+	return "abort non-retryable errors strategy"
+}
 
 func (a *autoRetryStrategy) Continue(err error, action string) error {
 	var engineErr EngineError
@@ -298,12 +368,19 @@ func MaxTries(tries uint16) RetryStrategy {
 		false,
 		false,
 		true,
+		false,
 	}
 }
 
 type maxTriesStrategy struct {
 	maxTries uint16
 	tries    uint16
+}
+
+func (m *maxTriesStrategy) Recover(err error) error { return err }
+
+func (m *maxTriesStrategy) Name() string {
+	return fmt.Sprintf("maximum of %d retries strategy", m.maxTries)
 }
 
 func (m *maxTriesStrategy) Continue(err error, action string) error {
@@ -341,6 +418,7 @@ func Timeout(timeout time.Duration) RetryStrategy {
 		false,
 		false,
 		true,
+		false,
 	}
 }
 
@@ -357,6 +435,7 @@ func CallTimeout(timeout time.Duration) RetryStrategy {
 		false,
 		false,
 		true,
+		false,
 	}
 }
 
@@ -365,12 +444,15 @@ type timeoutStrategy struct {
 	startTime time.Time
 }
 
+func (t *timeoutStrategy) Recover(err error) error { return err }
+
 func (t *timeoutStrategy) Continue(err error, action string) error {
 	if elapsedTime := time.Since(t.startTime); elapsedTime > t.duration {
 		return wrap(
 			err,
 			ETimeout,
-			"timeout while %s, giving up",
+			"timeout of %d seconds while %s, giving up",
+			t.duration/time.Second,
 			action,
 		)
 	}
@@ -382,6 +464,44 @@ func (t *timeoutStrategy) Wait(_ error) interface{} {
 }
 
 func (t *timeoutStrategy) OnWaitExpired(_ error, _ string) error {
+	return nil
+}
+
+// ReconnectStrategy triggers the client to reconnect if an EInvalidGrant error is encountered.
+func ReconnectStrategy(client Client) RetryStrategy {
+	return &retryStrategyContainer{
+		func() RetryInstance {
+			return &reconnectStrategy{
+				client: client,
+			}
+		},
+		false,
+		false,
+		false,
+		true,
+	}
+}
+
+type reconnectStrategy struct {
+	client Client
+}
+
+func (r reconnectStrategy) Continue(_ error, _ string) error {
+	return nil
+}
+
+func (r reconnectStrategy) Recover(err error) error {
+	if HasErrorCode(err, EInvalidGrant) {
+		return r.client.Reconnect()
+	}
+	return err
+}
+
+func (r reconnectStrategy) Wait(_ error) interface{} {
+	return nil
+}
+
+func (r reconnectStrategy) OnWaitExpired(_ error, _ string) error {
 	return nil
 }
 
@@ -412,26 +532,56 @@ func defaultRetries(retries []RetryStrategy, timeout []RetryStrategy) []RetryStr
 	return retries
 }
 
-func defaultReadTimeouts() []RetryStrategy {
+// defaultReadTimeouts returns a list of retry strategies suitable for read calls. There are view retries and
+// individual calls with retries shouldn't last longer than a minute, otherwise something went wrong.
+func defaultReadTimeouts(client Client) []RetryStrategy {
+	if ctx := client.GetContext(); ctx != nil {
+		return []RetryStrategy{
+			MaxTries(10),
+			ContextStrategy(ctx),
+			ReconnectStrategy(client),
+		}
+	}
 	return []RetryStrategy{
 		MaxTries(3),
 		CallTimeout(time.Minute),
 		Timeout(5 * time.Minute),
+		ReconnectStrategy(client),
 	}
 }
 
-func defaultWriteTimeouts() []RetryStrategy {
+// defaultWriteTimeouts has slightly higher tolerances for write API calls, as they may need longer waiting
+// times.
+func defaultWriteTimeouts(client Client) []RetryStrategy {
+	if ctx := client.GetContext(); ctx != nil {
+		return []RetryStrategy{
+			MaxTries(10),
+			ContextStrategy(ctx),
+			ReconnectStrategy(client),
+		}
+	}
 	return []RetryStrategy{
 		MaxTries(10),
-		CallTimeout(time.Minute),
-		Timeout(5 * time.Minute),
+		CallTimeout(5 * time.Minute),
+		Timeout(10 * time.Minute),
+		ReconnectStrategy(client),
 	}
 }
 
-func defaultLongTimeouts() []RetryStrategy {
+// defaultLongTimeouts contains a strategy to wait for calls that typically take longer, for example waiting for a
+// disk to become ready.
+func defaultLongTimeouts(client Client) []RetryStrategy {
+	if ctx := client.GetContext(); ctx != nil {
+		return []RetryStrategy{
+			MaxTries(10),
+			ContextStrategy(ctx),
+			ReconnectStrategy(client),
+		}
+	}
 	return []RetryStrategy{
 		MaxTries(30),
 		CallTimeout(15 * time.Minute),
 		Timeout(30 * time.Minute),
+		ReconnectStrategy(client),
 	}
 }

@@ -24,6 +24,9 @@ const ETLSError ErrorCode = "tls_error"
 // ENotFound signals that the resource requested was not found.
 const ENotFound ErrorCode = "not_found"
 
+// EMultipleResults indicates that multiple items were found where only one was expected.
+const EMultipleResults ErrorCode = "multiple_results"
+
 // EBug signals an error that should never happen. Please report this.
 const EBug ErrorCode = "bug"
 
@@ -68,6 +71,9 @@ const EUnsupported ErrorCode = "unsupported"
 // EDiskLocked indicates that the disk in question is locked.
 const EDiskLocked ErrorCode = "disk_locked"
 
+// EVMLocked indicates that the virtual machine in question is locked.
+const EVMLocked ErrorCode = "vm_locked"
+
 // ERelatedOperationInProgress means that the engine is busy working on something else on the same resource.
 const ERelatedOperationInProgress ErrorCode = "related_operation_in_progress"
 
@@ -78,9 +84,32 @@ const ELocalIO ErrorCode = "local_io_error"
 // conflicting way. For example, you tried to attach a disk that is already attached.
 const EConflict ErrorCode = "conflict"
 
+// EHotPlugFailed indicates that a disk could not be hot plugged.
+const EHotPlugFailed ErrorCode = "hot_plug_failed"
+
+// EInvalidGrant is an error returned from the oVirt Engine when the SSO token expired. In this case we must reconnect
+// and retry the API call.
+const EInvalidGrant ErrorCode = "invalid_grant"
+
+// ECannotRunVM indicates an error with the VM configuration which prevents it from being run.
+const ECannotRunVM ErrorCode = "cannot_run_vm"
+
+// CanRecover returns true if there is a way to automatically recoverFailure from this error. For the actual recovery an
+// appropriate recovery strategy must be passed to the retry function.
+func (e ErrorCode) CanRecover() bool {
+	switch e {
+	case EInvalidGrant:
+		return true
+	default:
+		return false
+	}
+}
+
 // CanAutoRetry returns false if the given error code is permanent and an automatic retry should not be attempted.
 func (e ErrorCode) CanAutoRetry() bool {
 	switch e {
+	case EBadArgument:
+		return false
 	case EAccessDenied:
 		return false
 	case ENotAnOVirtEngine:
@@ -88,6 +117,8 @@ func (e ErrorCode) CanAutoRetry() bool {
 	case ETLSError:
 		return false
 	case ENotFound:
+		return false
+	case EMultipleResults:
 		return false
 	case EBug:
 		return false
@@ -98,6 +129,8 @@ func (e ErrorCode) CanAutoRetry() bool {
 	case EPermanentHTTPError:
 		return false
 	case EUnexpectedDiskStatus:
+		return false
+	case ECannotRunVM:
 		return false
 	default:
 		return true
@@ -119,6 +152,8 @@ func (e ErrorCode) CanAutoRetry() bool {
 type EngineError interface {
 	error
 
+	// Message returns the error message without the error code.
+	Message() string
 	// String returns the string representation for this error.
 	String() string
 	// HasCode returns true if the current error, or any preceding error has the specified error code.
@@ -127,6 +162,9 @@ type EngineError interface {
 	Code() ErrorCode
 	// Unwrap returns the underlying error
 	Unwrap() error
+	// CanRecover indicates that this error can be automatically recovered with the use of the proper recovery strategy
+	// passed to the retry function.
+	CanRecover() bool
 	// CanAutoRetry returns false if an automatic retry should not be attempted.
 	CanAutoRetry() bool
 }
@@ -160,6 +198,10 @@ func (e *engineError) HasCode(code ErrorCode) bool {
 	return false
 }
 
+func (e *engineError) Message() string {
+	return e.message
+}
+
 func (e *engineError) String() string {
 	return fmt.Sprintf("%s: %s", e.code, e.message)
 }
@@ -174,6 +216,10 @@ func (e *engineError) Code() ErrorCode {
 
 func (e *engineError) Unwrap() error {
 	return e.cause
+}
+
+func (e *engineError) CanRecover() bool {
+	return e.code.CanRecover()
 }
 
 func (e *engineError) CanAutoRetry() bool {
@@ -197,6 +243,7 @@ func newError(code ErrorCode, format string, args ...interface{}) EngineError {
 func wrap(err error, code ErrorCode, format string, args ...interface{}) EngineError {
 	// gocritic will complain on the following line due to appendAssign, but that's legit here.
 	realArgs := append(args, err) // nolint:gocritic
+	realMessage := fmt.Sprintf(fmt.Sprintf("%s (%v)", format, "%v"), realArgs...)
 	if code == EUnidentified {
 		var realErr EngineError
 		if errors.As(err, &realErr) {
@@ -204,9 +251,9 @@ func wrap(err error, code ErrorCode, format string, args ...interface{}) EngineE
 		} else if e := realIdentify(err); e != nil {
 			err = e
 			code = e.Code()
+			realMessage = e.Message()
 		}
 	}
-	realMessage := fmt.Sprintf(fmt.Sprintf("%s (%v)", format, "%v"), realArgs...)
 	return &engineError{
 		message: realMessage,
 		code:    code,
@@ -214,31 +261,42 @@ func wrap(err error, code ErrorCode, format string, args ...interface{}) EngineE
 	}
 }
 
-// identify attempts to identify the reason for the error and create a structure accordingly. If it fails to identify
-// the reason it will return nil.
-//
-// Usage:
-//
-//   if err != nil {
-//     if wrappedError := identify(err); wrappedError != nil {
-//         return wrappedError
-//     }
-//     // Handle unknown error here
-//   }
-func identify(err error) error {
-	return realIdentify(err)
-}
-
 func realIdentify(err error) EngineError {
 	var authErr *ovirtsdk.AuthError
 	var notFoundErr *ovirtsdk.NotFoundError
 	switch {
+	case strings.Contains(err.Error(), "Cannot run VM without at least one bootable disk."):
+		return wrap(
+			err,
+			ECannotRunVM,
+			"cannot run VM due to a missing bootable disk",
+		)
+	case strings.Contains(err.Error(), "Physical Memory Guaranteed cannot exceed Memory Size"):
+		return wrap(
+			err,
+			EBadArgument,
+			"guaranteed memory size must be lower than the memory size",
+		)
+	case strings.Contains(err.Error(), "stopped after") && strings.Contains(err.Error(), "redirects"):
+		return wrap(
+			err,
+			ENotAnOVirtEngine,
+			"the specified oVirt Engine URL has resulted in a redirect, check if your URL is correct",
+		)
 	case strings.Contains(err.Error(), "parse non-array sso with response"):
-		return wrap(err,
-			ENotAnOVirtEngine, "invalid credentials, or the URL does not point to an oVirt Engine, check your settings")
+		return wrap(
+			err,
+			ENotAnOVirtEngine,
+			"invalid credentials, or the URL does not point to an oVirt Engine, check your settings",
+		)
 	case strings.Contains(err.Error(), "server gave HTTP response to HTTPS client"):
-		return wrap(err,
-			ENotAnOVirtEngine, "the server gave a HTTP response to a HTTPS client, check if your URL is correct")
+		return wrap(
+			err,
+			ENotAnOVirtEngine,
+			"the server gave a HTTP response to a HTTPS client, check if your URL is correct",
+		)
+	case strings.Contains(err.Error(), "invalid_grant: The provided authorization grant for the auth code has expired."):
+		return wrap(err, EInvalidGrant, "please reauthenticate for a new access token")
 	case strings.Contains(err.Error(), "tls"):
 		fallthrough
 	case strings.Contains(err.Error(), "x509"):
@@ -247,8 +305,14 @@ func realIdentify(err error) EngineError {
 		return wrap(err, ENotFound, "the requested resource was not found")
 	case strings.Contains(err.Error(), "Disk is locked"):
 		return wrap(err, EDiskLocked, "the disk is locked")
+	case strings.Contains(err.Error(), "VM is locked"):
+		return wrap(err, EVMLocked, "the VM is locked")
+	case strings.Contains(err.Error(), "Failed to hot-plug disk"):
+		return wrap(err, EHotPlugFailed, "failed to hot-plug disk")
 	case strings.Contains(err.Error(), "Related operation is currently in progress."):
 		return wrap(err, ERelatedOperationInProgress, "a related operation is in progress")
+	case strings.Contains(err.Error(), "Disk configuration") && strings.Contains(err.Error(), " is incompatible with the storage domain type."):
+		return wrap(err, EBadArgument, "disk configuration is incompatible with the storage domain type")
 	case strings.Contains(err.Error(), "409 Conflict"):
 		return wrap(err, EConflict, "conflicting operations")
 	case errors.As(err, &authErr):

@@ -8,7 +8,7 @@ This library is built to wrap [go-ovirt](https://github.com/ovirt/go-ovirt), whi
 
 ## Tooling
 
-The main tool to develop this library apart from Go itself is [golangci-lint](https://golanci-lint.run). You can use this tool to sanity-check your code before submitting a PR.
+The main tool to develop this library apart from Go itself is [golangci-lint](https://golangci-lint.run). You can use this tool to sanity-check your code before submitting a PR.
 
 ```
 golangci-lint run
@@ -50,15 +50,18 @@ The two interfaces are `OBJECTNAME` and `OBJECTNAMEData`. For example, `VM` and 
 You can run the tests against the mock backend simply by running:
 
 ```
-go test -v ./...
+go generate
+go test -v -client=mock ./...
 ```
+
+If you don't specify `-client`, it will default to `all` and run each test against the mock backend as well as the live oVirt engine.  
 
 Before you submit, we would like to ask you to run your tests against the live oVirt engine as we do not have one integrated with the CI at the moment. You can do so by running tests as follows:
 
 ```
 OVIRT_URL=https://url-of-your-engine
 OVIRT_USERNAME=admin@internal
-OVIRT_PASSWRD=your-ovirt-password
+OVIRT_PASSWORD=your-ovirt-password
 # Use the system certificate store to verify the engine certificate.
 OVIRT_SYSTEM=1
 # Alternatively, use one of these options:
@@ -72,8 +75,19 @@ OVIRT_SYSTEM=1
 # OVIRT_INSECURE=1
 
 # Run the tests
-go test -v ./...
+go test -v -client=live ./...
 ```
+
+If you want to connect to a live oVirt engine you need to define these environment variables.
+To get a PR merged please run your tests against both the mock and the live backend.
+
+In the test code you can then obtain the test helper using the `getHelper(t)` function:
+
+```
+helper := getHelper(t)
+```
+
+The client is then available using the `helper.GetClient()` function. 
 
 ## Submitting a PR
 
