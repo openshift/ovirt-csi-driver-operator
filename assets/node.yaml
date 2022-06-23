@@ -190,4 +190,5 @@ spec:
           hostPath:
             path: /run/udev
         - name: config
-          emptyDir: {}
+          emptyDir:
+            medium: Memory
