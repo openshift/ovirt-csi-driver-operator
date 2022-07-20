@@ -33,6 +33,7 @@ const (
 	operandName        = "ovirt-csi-driver"
 	instanceName       = "csi.ovirt.org"
 	trustedCAConfigMap = "ovirt-csi-driver-trusted-ca-bundle"
+	secretName         = "ovirt-credentials"
 )
 
 type CSIOperator struct {
@@ -68,6 +69,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	kubeInformersForNamespaces := v1helpers.NewKubeInformersForNamespaces(kubeClient, defaultNamespace, "")
 	nodeInformer := kubeInformersForNamespaces.InformersFor("").Core().V1().Nodes()
 	configMapInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().ConfigMaps()
+	secretInformer := kubeInformersForNamespaces.InformersFor(defaultNamespace).Core().V1().Secrets()
 	// Create GenericOperatorclient. This is used by the library-go controllers created down below
 	gvr := opv1.GroupVersion.WithResource("clustercsidrivers")
 	operatorClient, dynamicInformers, err := goc.NewClusterScopedOperatorClientWithConfigName(controllerConfig.KubeConfig, gvr, instanceName)
@@ -131,7 +133,9 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		[]factory.Informer{
 			nodeInformer.Informer(),
 			configMapInformer.Informer(),
+			secretInformer.Informer(),
 		},
+		csidrivercontrollerservicecontroller.WithSecretHashAnnotationHook(defaultNamespace, secretName, secretInformer),
 		csidrivercontrollerservicecontroller.WithObservedProxyDeploymentHook(),
 		csidrivercontrollerservicecontroller.WithReplicasHook(nodeInformer.Lister()),
 		csidrivercontrollerservicecontroller.WithCABundleDeploymentHook(
