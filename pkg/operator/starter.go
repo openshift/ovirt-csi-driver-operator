@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivercontrollerservicecontroller"
 	"github.com/openshift/library-go/pkg/operator/csi/csidrivernodeservicecontroller"
-	ovirtclient "github.com/ovirt/go-ovirt-client"
+	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 
 	"github.com/ovirt/csi-driver-operator/assets"
 	"github.com/ovirt/csi-driver-operator/internal/ovirt"
