@@ -520,12 +520,12 @@ github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc/go.mod h1:AMZ
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/ovirt/go-ovirt v0.0.0-20220427092237-114c47f2835c h1:jXRFpl7+W0YZj/fghoYuE4vJWW/KeQGvdrhnRwRGtAY=
 github.com/ovirt/go-ovirt v0.0.0-20220427092237-114c47f2835c/go.mod h1:Zkdj9/rW6eyuw0uOeEns6O3pP5G2ak+bI/tgkQ/tEZI=
-github.com/ovirt/go-ovirt-client v1.0.0 h1:y4b8dMZKWP0LzURdliCQm/9oGYs6pT61xq2c+rygSXs=
-github.com/ovirt/go-ovirt-client v1.0.0/go.mod h1:tv8E2pxUkggayDAgMLuQHzcNtzt8RFvnhO5V5b/5X4U=
 github.com/ovirt/go-ovirt-client-log-klog/v2 v2.0.0 h1:lQJGJ1VIDMgFiU4J5yXo9npvCgHFabELfrwiNsbPifg=
 github.com/ovirt/go-ovirt-client-log-klog/v2 v2.0.0/go.mod h1:Bo83WSGfqYsatXlrOnG0jp8fvrmf5xGzJnpJqVsS+1s=
 github.com/ovirt/go-ovirt-client-log/v3 v3.0.0 h1:uvACVHYhYPMkNJrrgWiABcfELB6qoFfsDDUTbpb4Jv4=
 github.com/ovirt/go-ovirt-client-log/v3 v3.0.0/go.mod h1:chKKxCv4lRjxezrTG+EIhkWXGhDAWByglPVXh/iYdnQ=
+github.com/ovirt/go-ovirt-client/v2 v2.0.0-alpha03 h1:a6cZ5CoFuUB+/bwgizPsSSrqevvIvzg/3s+4Ne6EN2I=
+github.com/ovirt/go-ovirt-client/v2 v2.0.0-alpha03/go.mod h1:Zi2RF2khEr+hcr3fCAf6WL7OEoUwUHeWWiob/WcEaDc=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
