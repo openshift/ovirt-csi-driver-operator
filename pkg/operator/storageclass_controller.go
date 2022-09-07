@@ -58,12 +58,11 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncCon
 	existingStorageClass, err := c.kubeClient.StorageV1().StorageClasses().Get(ctx, storageClass.Name, metav1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			klog.Errorf(
-				"failed to issue get request for storage class %s, error: %w", storageClass.Name, err)
+			klog.Errorf("failed to issue get request for storage class %s, error: %w", storageClass.Name, err)
 			return err
 		}
 	} else {
-		klog.Info("Storage Class %s already exists", existingStorageClass.Name)
+		klog.Infof("Storage Class %s already exists", existingStorageClass.Name)
 		storageClass = existingStorageClass
 	}
 
@@ -101,7 +100,7 @@ func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (stri
 				klog.Errorf("failed to fetch disk: %w", err)
 				return "", err
 			}
-			klog.Info("Extracting Storage Domain from disk: %s", d.ID())
+			klog.Infof("Extracting Storage Domain from disk: %s", d.ID())
 			storageDomains := d.StorageDomainIDs()
 			if len(storageDomains) == 0 {
 				return "", fmt.Errorf("no storage domains found on disk %s", d.ID())
