@@ -15,6 +15,8 @@ import (
 	opv1 "github.com/openshift/api/operator/v1"
 	configclient "github.com/openshift/client-go/config/clientset/versioned"
 	configinformers "github.com/openshift/client-go/config/informers/externalversions"
+	opclient "github.com/openshift/client-go/operator/clientset/versioned"
+	opinformers "github.com/openshift/client-go/operator/informers/externalversions"
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/openshift/library-go/pkg/operator/csi/csicontrollerset"
@@ -34,6 +36,7 @@ const (
 	instanceName       = "csi.ovirt.org"
 	trustedCAConfigMap = "ovirt-csi-driver-trusted-ca-bundle"
 	secretName         = "ovirt-credentials"
+	resync             = 20 * time.Minute
 )
 
 type CSIOperator struct {
@@ -78,7 +81,11 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	}
 	// Create config clientset and informer. This is used to get the HTTP proxy setting
 	configClient := configclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
-	configInformers := configinformers.NewSharedInformerFactory(configClient, 20*time.Minute)
+	configInformers := configinformers.NewSharedInformerFactory(configClient, resync)
+
+	// operator.openshift.io client, used for ClusterCSIDriver
+	operatorClientSet := opclient.NewForConfigOrDie(rest.AddUserAgent(controllerConfig.KubeConfig, operatorName))
+	operatorInformers := opinformers.NewSharedInformerFactory(operatorClientSet, resync)
 
 	dynamicClient, err := dynamic.NewForConfig(controllerConfig.KubeConfig)
 	if err != nil {
@@ -167,10 +174,11 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		"servicemonitor.yaml",
 	)
 
-	scController := NewOvirtStrogeClassController(
+	scController := NewOvirtStorageClassController(
 		operatorClient,
 		kubeClient,
 		kubeInformersForNamespaces,
+		operatorInformers,
 		o.getConnection,
 		*o.nodeName,
 		controllerConfig.EventRecorder,
@@ -184,6 +192,7 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	go kubeInformersForNamespaces.Start(ctx.Done())
 	go dynamicInformers.Start(ctx.Done())
 	go configInformers.Start(ctx.Done())
+	go operatorInformers.Start(ctx.Done())
 
 	klog.Info("Starting controllerset")
 	go csiControllerSet.Run(ctx, 1)
