@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	operatorapi "github.com/openshift/api/operator/v1"
+	opinformers "github.com/openshift/client-go/operator/informers/externalversions"
 	"github.com/openshift/library-go/pkg/controller/factory"
+	csiscc "github.com/openshift/library-go/pkg/operator/csi/csistorageclasscontroller"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	ovirtclient "github.com/ovirt/go-ovirt-client/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -17,38 +19,49 @@ import (
 	"k8s.io/klog/v2"
 )
 
-type OvirtStrogeClassController struct {
+type OvirtStorageClassController struct {
 	operatorClient            v1helpers.OperatorClient
 	kubeClient                kubernetes.Interface
 	kubeInformersForNamespace v1helpers.KubeInformersForNamespaces
 	eventRecorder             events.Recorder
 	ovirtClientFactory        func() (ovirtclient.Client, error)
 	nodeName                  string
+	scStateEvaluator          *csiscc.StorageClassStateEvaluator
 }
 
-func NewOvirtStrogeClassController(
+func NewOvirtStorageClassController(
 	operatorClient v1helpers.OperatorClient,
 	kubeClient kubernetes.Interface,
 	kubeInformersForNamespace v1helpers.KubeInformersForNamespaces,
+	operatorInformer opinformers.SharedInformerFactory,
 	ovirtClientFactory func() (ovirtclient.Client, error),
 	nodeName string,
 	eventRecorder events.Recorder,
 ) factory.Controller {
-	c := &OvirtStrogeClassController{
+	clusterCSIDriverLister := operatorInformer.Operator().V1().ClusterCSIDrivers().Lister()
+	evaluator := csiscc.NewStorageClassStateEvaluator(
+		kubeClient,
+		clusterCSIDriverLister,
+		eventRecorder,
+	)
+	c := &OvirtStorageClassController{
 		operatorClient:     operatorClient,
 		kubeClient:         kubeClient,
 		eventRecorder:      eventRecorder,
 		ovirtClientFactory: ovirtClientFactory,
 		nodeName:           nodeName,
+		scStateEvaluator:   evaluator,
 	}
 	return factory.New().WithSync(c.sync).WithSyncDegradedOnError(operatorClient).WithInformers(
 		operatorClient.Informer(),
 		kubeInformersForNamespace.InformersFor("").Storage().V1().StorageClasses().Informer(),
+		operatorInformer.Operator().V1().ClusterCSIDrivers().Informer(),
 	).ToController("OvirtStorageClassController", eventRecorder)
 }
 
-func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncContext) error {
-	sdName, err := c.getStorageDomain(ctx)
+func (c *OvirtStorageClassController) sync(ctx context.Context, _ factory.SyncContext) error {
+	scState := c.scStateEvaluator.GetStorageClassState(instanceName)
+	sdName, err := c.getStorageDomain(ctx, scState)
 	if err != nil {
 		klog.Errorf("failed to get Storage Domain name: %w", err)
 		return err
@@ -66,7 +79,7 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncCon
 		storageClass = existingStorageClass
 	}
 
-	_, _, err = resourceapply.ApplyStorageClass(ctx, c.kubeClient.StorageV1(), c.eventRecorder, storageClass)
+	err = c.scStateEvaluator.ApplyStorageClass(ctx, storageClass, scState)
 	if err != nil {
 		klog.Errorf("failed to apply storage class: %w", err)
 		return err
@@ -75,7 +88,12 @@ func (c *OvirtStrogeClassController) sync(ctx context.Context, _ factory.SyncCon
 	return nil
 }
 
-func (c *OvirtStrogeClassController) getStorageDomain(ctx context.Context) (string, error) {
+func (c *OvirtStorageClassController) getStorageDomain(ctx context.Context, scState operatorapi.StorageClassStateName) (string, error) {
+	// if the SC is not managed, there is no need to get the storage domain
+	if !c.scStateEvaluator.IsManaged(scState) {
+		return "", nil
+	}
+
 	get, err := c.kubeClient.CoreV1().Nodes().Get(ctx, c.nodeName, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get node: %w", err)
