@@ -184,9 +184,12 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 		controllerConfig.EventRecorder,
 	)
 
-	if err != nil {
-		return err
-	}
+	eolController := NewOvirtEOLController(
+		operatorClient,
+		operatorClientSet,
+		operatorInformers,
+		controllerConfig.EventRecorder,
+	)
 
 	klog.Info("Starting the informers")
 	go kubeInformersForNamespaces.Start(ctx.Done())
@@ -197,6 +200,8 @@ func (o *CSIOperator) RunOperator(ctx context.Context, controllerConfig *control
 	klog.Info("Starting controllerset")
 	go csiControllerSet.Run(ctx, 1)
 	go scController.Run(ctx, 1)
+	go eolController.Run(ctx, 1)
+
 	<-ctx.Done()
 
 	return fmt.Errorf("stopped")
