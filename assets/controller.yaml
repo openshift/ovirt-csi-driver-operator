@@ -19,6 +19,8 @@ spec:
     metadata:
       labels:
         app: ovirt-csi-driver-controller
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
     spec:
       hostNetwork: true
       serviceAccount: ovirt-csi-driver-controller-sa
