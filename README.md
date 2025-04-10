@@ -1,3 +1,6 @@
+> [!warning]
+> **This repo is obsolete in 4.19 and is no longer maintained. Older branches are still in use, until EOL of the corresponding OCP version**
+
 # An operator to deploy oVirt's CSI driver
 
 This operator is meant to be installed and controlled by the [Cluster Storage Operator](https://github.com/openshift/cluster-storage-operator)
